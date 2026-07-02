@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- ส่วนควบคุมสำหรับหน้าจอ Home ของ iPad / iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ผังห้องว่าง"> 
+    
+    <!-- รูปไอคอนตึกหอพัก (ดึงจากเซิร์ฟเวอร์ภาพหลักของ Google Fonts Noto) -->
+    <link rel="apple-touch-icon" sizes="512x512" href="https://raw.githubusercontent.com/googlefonts/noto-emoji/main/png/512/emoji_u1f3e2.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://raw.githubusercontent.com/googlefonts/noto-emoji/main/png/512/emoji_u1f3e2.png">
+    
+    <title>ผังห้องว่าง กอล์ฟซิตี้</title>
+    <style>
+        /* ลบขอบขาวรอบหน้าจอทิ้ง เพื่อให้แอปเต็มหน้าจอ 100% */
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background-color: #f3f4f6; 
+        }
+        /* กำหนดให้กรอบแอป (iframe) ดึงภาพจากหน้าระบบหลักมาแสดงแบบไม่มีขอบ */
+        iframe { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            display: block; 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- นำลิงก์ Web App ของ Google Apps Script (เว็บที่คุณใช้งานปัจจุบัน) ที่ลงท้ายด้วย /exec 
+         มาวางแทนที่คำว่า "ใส่ลิงก์_APPS_SCRIPT_ตรงนี้" โดยต้องให้อยู่ในเครื่องหมายคำพูดนะครับ -->
+         
+    <iframe src="ใส่ลิงก์_APPS_SCRIPT_ตรงนี้"></iframe>
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Data Migration</title>
+    <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Building_icon.svg/512px-Building_icon.svg.png">
+    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Building_icon.svg/512px-Building_icon.svg.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Config -->
+    <script src="js/firebase-config.js"></script>
+</head>
+<body class="bg-gray-100 p-8 font-sans">
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-8">
+        <h1 class="text-2xl font-bold mb-6 flex items-center text-blue-600">
+            <i class="fa-solid fa-cloud-arrow-up mr-3"></i> เครื่องมือย้ายข้อมูล (Excel to Firestore)
+        </h1>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 text-sm text-yellow-800 rounded">
+            <p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> คำเตือน</p>
+            <p>กรุณาใช้งานหน้านี้เพียงครั้งเดียวเท่านั้น การกดอัปโหลดซ้ำอาจทำให้ข้อมูลซ้ำซ้อนในฐานข้อมูล</p>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+                1. เลือกไฟล์ Google Sheets ที่ดาวน์โหลดเป็น Excel (.xlsx)
+            </label>
+            <input type="file" id="excelFile" accept=".xlsx" class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100
+                border border-gray-300 rounded-lg p-2
+            "/>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+                2. กรอกอีเมลและรหัสผ่านสำหรับ Admin เริ่มต้น
+            </label>
+            <div class="flex gap-4">
+                <input type="email" id="adminEmail" placeholder="admin@example.com" class="border p-2 rounded w-full">
+                <input type="text" id="adminPassword" placeholder="รหัสผ่าน (6 ตัวขึ้นไป)" class="border p-2 rounded w-full">
+            </div>
+        </div>
+
+        <button id="startBtn" onclick="startMigration()" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-md w-full disabled:bg-gray-400">
+            <i class="fa-solid fa-play mr-2"></i> เริ่มย้ายข้อมูลเข้า Firebase
+        </button>
+
+        <div id="logContainer" class="mt-8 bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg h-64 overflow-y-auto hidden">
+            <!-- Logs will appear here -->
+        </div>
+    </div>
+
+    <script>
+        function log(msg, type='info') {
+            const container = document.getElementById('logContainer');
+            container.classList.remove('hidden');
+            const p = document.createElement('p');
+            p.className = 'mb-1';
+            
+            if(type === 'error') p.innerHTML = `<span class="text-red-500">[ERROR]</span> ${msg}`;
+            else if(type === 'success') p.innerHTML = `<span class="text-blue-400">[SUCCESS]</span> ${msg}`;
+            else p.innerHTML = `<span class="text-gray-500">[INFO]</span> ${msg}`;
+            
+            container.appendChild(p);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function createAdminUser(email, password) {
+            log(`กำลังเข้าสู่ระบบ/สร้างผู้ดูแลระบบ ${email}...`);
+            try {
+                let userCredential;
+                try {
+                    // Try to create first
+                    userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                } catch (err) {
+                    if (err.code === 'auth/email-already-in-use') {
+                        // If exists, try to sign in
+                        log(`พบอีเมลนี้ในระบบแล้ว กำลังเข้าสู่ระบบ...`);
+                        userCredential = await auth.signInWithEmailAndPassword(email, password);
+                    } else {
+                        throw err;
+                    }
+                }
+                
+                const uid = userCredential.user.uid;
+                
+                // Use set with merge: true so we don't overwrite if it exists, or create if it doesn't
+                await db.collection('users').doc(uid).set({
+                    username: 'admin',
+                    email: email,
+                    role: 'Admin',
+                    access: PROJECTS,
+                    status: 'Active',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                log('จัดการผู้ดูแลระบบสำเร็จ!', 'success');
+            } catch (e) {
+                log(`ไม่สามารถตั้งค่าผู้ใช้ได้: ${e.message}`, 'error');
+                throw e;
+            }
+        }
+
+        async function startMigration() {
+            const fileInput = document.getElementById('excelFile');
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+
+            if (!fileInput.files.length) return alert('กรุณาเลือกไฟล์ Excel ก่อนครับ');
+            if (!email || password.length < 6) return alert('กรุณากรอกอีเมลและรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)');
+
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังดำเนินการ... ห้ามปิดหน้านี้';
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // 1. Create Admin
+                    await createAdminUser(email, password);
+
+                    // 2. Migrate Users (Read from "Users" sheet if exists)
+                    if (workbook.SheetNames.includes('Users')) {
+                        log('กำลังย้ายข้อมูล Users...');
+                        const usersSheet = XLSX.utils.sheet_to_json(workbook.Sheets['Users'], {header: 1});
+                        for (let i = 1; i < usersSheet.length; i++) {
+                            const row = usersSheet[i];
+                            if (!row[0]) continue;
+                            const id = String(row[0]).trim() || ('U' + Date.now() + i);
+                                await db.collection('users').doc(id).set({
+                                    username: String(row[1] || '').trim(),
+                                    password: String(row[2] || '').trim(),
+                                    email: String(row[3] || '').trim(),
+                                    role: String(row[4] || 'Project User').trim(),
+                                    access: String(row[5] || '').split(',').map(s=>s.trim()).filter(s=>s),
+                                    status: String(row[6] || 'Active').trim(),
+                                    note: 'Migrated without password'
+                                });
+                        }
+                        log('ย้ายข้อมูล Users สำเร็จ!', 'success');
+                    }
+
+                    // 3. Migrate Settings
+                    if (workbook.SheetNames.includes('Settings')) {
+                        log('กำลังย้ายข้อมูล Settings...');
+                        const sheet = XLSX.utils.sheet_to_json(workbook.Sheets['Settings'], {header: 1});
+                        let currentProject = '';
+                        for (let i = 1; i < sheet.length; i++) {
+                            const row = sheet[i];
+                            if (row[0] && row[0].trim() !== '') currentProject = row[0].trim();
+                            if (!currentProject || !row[1]) continue;
+
+                            await db.collection('settings').add({
+                                project: currentProject,
+                                name: row[1] || '',
+                                price: row[2] || '',
+                                detail: row[3] || '',
+                                color: row[4] || 'gray',
+                                category: row[5] || row[1]
+                            });
+                        }
+                        log('ย้ายข้อมูล Settings สำเร็จ!', 'success');
+                    }
+
+                    // 4. Migrate Rooms
+                    const projectTabs = ["กอล์ฟวิว", "กอล์ฟซิตี้", "กอล์ฟแมนชั่น", "เมเปิลซิตี้", "เมเปิลแมนชั่น"];
+                    for (const project of projectTabs) {
+                        if (workbook.SheetNames.includes(project)) {
+                            log(`กำลังย้ายข้อมูลห้องโครงการ ${project}...`);
+                            // raw: false ensures dates are formatted as strings instead of Excel serial numbers
+                            const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[project], {header: 1, defval: '', raw: false});
+                            let count = 0;
+                            // Batch write for performance
+                            let batch = db.batch();
+                            
+                            for (let i = 4; i < sheet.length; i++) {
+                                const row = sheet[i];
+                                // Skip empty rows
+                                if (!row[0] || String(row[0]).trim() === '') continue;
+                                
+                                const safeRoomNo = String(row[0]).trim();
+                                const docId = `${project}_${safeRoomNo.replace(/[/\\]/g, '-')}`;
+                                const ref = db.collection('rooms').doc(docId);
+                                
+                                batch.set(ref, {
+                                    project: project,
+                                    roomNo: safeRoomNo,
+                                    status: row[7] ? String(row[7]).trim() : 'ห้องว่าง', // H
+                                    moveInDate: row[8] || '', // I
+                                    roomType: row[9] ? String(row[9]).trim() : 'Standard', // J
+                                    remark: row[10] || '', // K
+                                    isSampleRoom: String(row[11]).toUpperCase() === 'Y', // L
+                                    bookingDate: row[12] || '', // M
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }, { merge: true });
+                                count++;
+
+                                if (count % 400 === 0) {
+                                    await batch.commit();
+                                    batch = db.batch();
+                                }
+                            }
+                            await batch.commit(); // commit remaining
+                            log(`ย้ายห้อง ${project} จำนวน ${count} ห้อง สำเร็จ!`, 'success');
+                        }
+                    }
+
+                    // 5. Layouts
+                    if (workbook.SheetNames.includes('Layouts')) {
+                        log('กำลังย้ายข้อมูล Layouts...');
+                        const sheet = XLSX.utils.sheet_to_json(workbook.Sheets['Layouts'], {header: 1});
+                        for (let i = 1; i < sheet.length; i++) {
+                            const row = sheet[i];
+                            if (!row[0] || !row[1]) continue;
+                            const docId = `${row[0]}_${row[1]}`;
+                            let layoutObj = {};
+                            try { layoutObj = JSON.parse(row[2]); } catch(e) {}
+                            
+                            await db.collection('layouts').doc(docId).set({
+                                project: row[0],
+                                building: row[1],
+                                layoutJSON: layoutObj
+                            });
+                        }
+                        log('ย้ายข้อมูล Layouts สำเร็จ!', 'success');
+                    }
+
+                    log('==== การย้ายข้อมูลทั้งหมดเสร็จสมบูรณ์! ====', 'success');
+                    log('คุณสามารถกลับไปที่เว็บ pinehurst-dorm.web.app และเข้าสู่ระบบได้เลย');
+                    btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> เรียบร้อยแล้ว';
+
+                } catch (err) {
+                    log('เกิดข้อผิดพลาด: ' + err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'ลองใหม่อีกครั้ง';
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>

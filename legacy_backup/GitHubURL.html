@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- ส่วนควบคุมสำหรับหน้าจอ Home ของ iPad / iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ผังห้องว่าง">
+
+    <!-- รูปไอคอนตึกหอพัก (ดึงจากเซิร์ฟเวอร์ภาพหลักของ Google Fonts Noto) -->
+    <link rel="apple-touch-icon" sizes="180x180"
+        href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Building_icon.svg/512px-Building_icon.svg.png">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'><path d='M3 21V7l9-4 9 4v14H3zm2-2h5v-4h4v4h5V8.1l-7-3.12L5 8.1V19z'/></svg>">
+    <link rel="icon" type="image/png" sizes="192x192"
+        href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Building_icon.svg/512px-Building_icon.svg.png">
+    <link rel="icon" type="image/png" sizes="512x512"
+        href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Building_icon.svg/512px-Building_icon.svg.png">
+
+    <title>ผังห้องว่าง</title>
+    <style>
+        /* ลบขอบขาวรอบหน้าจอทิ้ง เพื่อให้แอปเต็มหน้าจอ 100% */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f3f4f6;
+        }
+
+        /* กำหนดให้กรอบแอป (iframe) ดึงภาพจากหน้าระบบหลักมาแสดงแบบไม่มีขอบ */
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- นำลิงก์ Web App ของ Google Apps Script (เว็บที่คุณใช้งานปัจจุบัน) ที่ลงท้ายด้วย /exec 
+         มาวางแทนที่คำว่า "ใส่ลิงก์_APPS_SCRIPT_ตรงนี้" โดยต้องให้อยู่ในเครื่องหมายคำพูดนะครับ -->
+
+    <iframe src="https://pinehurst-dorm.web.app/"></iframe>
+
+</body>
+
+</html>
