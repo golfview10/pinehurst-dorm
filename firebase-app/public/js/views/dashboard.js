@@ -668,6 +668,8 @@
             let filterFn = r => r.status === statusKey;
             let isHex = config.colorType === 'hex';
 
+            const summaryCard = (STATE.summaryCards || []).find(c => c.id === statusKey || ('summary_' + c.id) === statusKey);
+
             if (summaryCard) {
                 title = summaryCard.title || 'รายการสรุปยอดรวม';
                 themeColor = summaryCard.color || 'teal';
