@@ -862,6 +862,44 @@ async function handleDeleteSummaryCardFirebase(cardId) {
 }
 
 // =====================================================
+// CARD ORDER (Dashboard Cards Sorting)
+// =====================================================
+
+async function handleGetCardOrderFirebase(project) {
+    if (!project) return { success: false, message: 'Missing project' };
+
+    try {
+        const doc = await db.collection('cardOrder').doc(project).get();
+        if (!doc.exists) {
+            return { success: true, order: [] };
+        }
+        const data = doc.data();
+        return { success: true, order: Array.isArray(data.order) ? data.order : [] };
+    } catch (error) {
+        console.error('[handleGetCardOrderFirebase]', error);
+        return { success: true, order: [] };
+    }
+}
+
+async function handleSaveCardOrderFirebase(project, orderArray) {
+    if (!project || !Array.isArray(orderArray)) {
+        return { success: false, message: 'Missing project or orderArray' };
+    }
+
+    try {
+        await db.collection('cardOrder').doc(project).set({
+            project: project,
+            order: orderArray,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return { success: true, message: 'บันทึกลำดับการ์ดเรียบร้อย' };
+    } catch (error) {
+        console.error('[handleSaveCardOrderFirebase]', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// =====================================================
 // LOGGING
 // =====================================================
 
@@ -968,6 +1006,12 @@ async function firebaseApiHandler(request) {
 
             case 'deleteSummaryCard':
                 return await handleDeleteSummaryCardFirebase(payload.cardId || payload.id);
+
+            case 'getCardOrder':
+                return await handleGetCardOrderFirebase(payload.project);
+
+            case 'saveCardOrder':
+                return await handleSaveCardOrderFirebase(payload.project, payload.order);
 
             default:
                 throw new Error("Invalid Action: " + action);

@@ -47,7 +47,8 @@ window.SafeStorage = {
             roomListViewMode: 'floor_plan',
             layouts: {}, // Floor layout templates per building
             buildingStripes: {}, // Building header color config
-            summaryCards: [] // Custom aggregate summary cards
+            summaryCards: [], // Custom aggregate summary cards
+            cardOrder: {} // Custom card display order per project
         };
         // Card grouping configs loaded from backend (cardKey -> { enabled, groups: [{name, buildings: []}] })
         STATE.cardGroups = {};
@@ -423,6 +424,18 @@ window.SafeStorage = {
             });
         }
 
+        function fetchCardOrder(project) {
+            return callApi('getCardOrder', { project: project || STATE.currentProject }, { silent: true }).then(res => {
+                if (res && res.success) {
+                    if (!STATE.cardOrder) STATE.cardOrder = {};
+                    STATE.cardOrder[project || STATE.currentProject] = res.order || [];
+                    if (STATE.currentView === 'dashboard') renderDashboard();
+                }
+            }).catch(err => {
+                console.error('[fetchCardOrder] Error:', err);
+            });
+        }
+
         // --- Navigation & Data ---
         function showProjectSelector() {
             STATE.currentView = 'selector';
@@ -466,6 +479,7 @@ window.SafeStorage = {
                 fetchBuildingStripes(p);
                 fetchCardGroups(p);
                 fetchSummaryCards(p);
+                fetchCardOrder(p);
                 fetchProjectData(p);
             });
         }

@@ -47,6 +47,15 @@
                             <h3 class="font-semibold text-lg text-[#1D1D1F] mb-1">การ์ดสรุปยอดรวม (Summary Cards)</h3>
                             <p class="text-sm text-gray-500 leading-relaxed">สร้างการ์ดรวมหลายสถานะบน Dashboard เช่น ห้องว่างรวม (ว่าง+ตัดหนี+ออกคืน+ปรับปรุง+ส่งซ่อม)</p>
                         </div>
+
+                        <!-- Card Ordering -->
+                        <div onclick="renderSettingsCardOrder()" class="bg-white p-6 rounded-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer transition-all duration-300 group flex flex-col relative overflow-hidden">
+                            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 mb-4 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors duration-300">
+                                <i class="fa-solid fa-arrow-down-up-across-line text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-lg text-[#1D1D1F] mb-1">จัดเรียงลำดับการ์ด (Card Ordering)</h3>
+                            <p class="text-sm text-gray-500 leading-relaxed">สลับและจัดลำดับการ์ดบน Dashboard ได้ตามต้องการ เช่น ย้ายห้องว่างรวม หรือห้องจอง</p>
+                        </div>
                         
                         <!-- Layout Editor -->
                         <div onclick="renderLayoutEditor()" class="bg-white p-6 rounded-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer transition-all duration-300 group flex flex-col relative overflow-hidden">
@@ -1465,5 +1474,292 @@
                     showToast('สำเร็จ', updatedCard.enabled ? 'เปิดแสดงการ์ดแล้ว' : 'ซ่อนการ์ดแล้ว', 'success');
                 }
             });
+        }
+
+        // =====================================================
+        // --- Card Ordering Settings (จัดเรียงลำดับการ์ด) ---
+        // =====================================================
+
+        function renderSettingsCardOrder(targetProject = null) {
+            STATE.currentView = 'settings_card_order';
+            const project = targetProject || (document.getElementById('co_project_select') && document.getElementById('co_project_select').value) || STATE.currentProject;
+
+            if (!project) return showToast('Error', 'กรุณาเลือกโครงการก่อน');
+
+            const projects = (STATE.user && STATE.user.projects && STATE.user.projects.length > 0) ? STATE.user.projects : (typeof PROJECTS !== 'undefined' ? PROJECTS : [project]);
+
+            // 1. Collect all available cards for this project
+            const cards = [];
+
+            // A. Standard / Custom Room Statuses
+            const statuses = (STATE.allRoomStatuses || []).filter(s => s.project === project);
+            if (statuses.length > 0) {
+                statuses.forEach(s => {
+                    cards.push({
+                        id: s.name,
+                        label: s.name,
+                        color: s.color,
+                        isHex: s.colorType === 'hex',
+                        icon: getIconForStatus(s.name),
+                        type: 'status'
+                    });
+                });
+            } else {
+                [
+                    { id: 'occupied', label: 'ไม่ว่าง', color: 'red', icon: 'fa-user-check', type: 'status' },
+                    { id: 'vacant', label: 'ห้องว่าง', color: 'emerald', icon: 'fa-door-open', type: 'status' },
+                    { id: 'reserved', label: 'ห้องจอง', color: 'yellow', icon: 'fa-calendar-check', type: 'status' },
+                    { id: 'refund', label: 'ห้องออกคืนประกัน', color: 'cyan', icon: 'fa-money-bill-transfer', type: 'status' },
+                    { id: 'writeoff', label: 'ห้องตัดหนี', color: 'purple', icon: 'fa-user-slash', type: 'status' },
+                    { id: 'repair', label: 'ปรับปรุง', color: 'gray', icon: 'fa-screwdriver-wrench', type: 'status' }
+                ].forEach(c => cards.push(c));
+            }
+
+            // B. Active Summary Cards
+            const activeSummaryCards = (STATE.summaryCards || []).filter(c => c.project === project && c.enabled !== false);
+            activeSummaryCards.forEach(sc => {
+                cards.push({
+                    id: 'summary_' + sc.id,
+                    label: sc.title,
+                    color: sc.color || 'teal',
+                    isHex: sc.colorType === 'hex',
+                    icon: sc.icon || 'fa-layer-group',
+                    type: 'summary',
+                    badge: 'สรุปยอด'
+                });
+            });
+
+            // C. 'all' card
+            cards.push({
+                id: 'all',
+                label: 'ทั้งหมด',
+                color: 'blue',
+                isHex: false,
+                icon: 'fa-border-all',
+                type: 'all'
+            });
+
+            // 2. Sort cards according to saved order or default
+            const savedOrder = (STATE.cardOrder && STATE.cardOrder[project]) || [];
+            if (Array.isArray(savedOrder) && savedOrder.length > 0) {
+                cards.sort((a, b) => {
+                    const idxA = savedOrder.indexOf(a.id) !== -1 ? savedOrder.indexOf(a.id) : (savedOrder.indexOf(a.label) !== -1 ? savedOrder.indexOf(a.label) : 999);
+                    const idxB = savedOrder.indexOf(b.id) !== -1 ? savedOrder.indexOf(b.id) : (savedOrder.indexOf(b.label) !== -1 ? savedOrder.indexOf(b.label) : 999);
+                    if (idxA !== idxB) return idxA - idxB;
+                    return 0;
+                });
+            } else {
+                const defaultOrder = ['ไม่ว่าง', 'occupied', 'ห้องว่าง', 'vacant', 'ห้องจอง', 'reserved', 'ห้องตัดหนี', 'writeoff', 'ห้องออกคืนประกัน', 'refund', 'ปรับปรุง', 'repair'];
+                cards.sort((a, b) => {
+                    if (a.id === 'all') return 1;
+                    if (b.id === 'all') return -1;
+                    const idxA = defaultOrder.indexOf(a.id) !== -1 ? defaultOrder.indexOf(a.id) : 99;
+                    const idxB = defaultOrder.indexOf(b.id) !== -1 ? defaultOrder.indexOf(b.id) : 99;
+                    return idxA - idxB;
+                });
+            }
+
+            window._cardOrderState = cards;
+            window._cardOrderProject = project;
+
+            _renderCardOrderPageHtml(project, projects);
+        }
+
+        function _renderCardOrderPageHtml(project, projects) {
+            let html = `
+                <div class="max-w-4xl mx-auto p-6 fade-in-up">
+                    <button onclick="renderSettings()" class="mb-6 text-gray-500 hover:text-amber-600 flex items-center text-sm font-semibold transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i> กลับไปหน้าตั้งค่ารวม</button>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-[#1D1D1F] tracking-tight flex items-center">
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mr-3 shadow-sm border border-amber-100/50">
+                                    <i class="fa-solid fa-arrow-down-up-across-line text-amber-600 text-lg"></i>
+                                </div>
+                                จัดเรียงลำดับการ์ด (Card Ordering)
+                            </h2>
+                            <p class="text-sm text-gray-500 mt-1 ml-13">ลากสลับตำแหน่ง หรือกดปุ่ม ▲ / ▼ เพื่อจัดเรียงลำดับการ์ดบน Dashboard</p>
+                        </div>
+
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <!-- Project Select -->
+                            <div class="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+                                <span class="text-xs font-bold text-gray-400 mr-2 uppercase">โครงการ:</span>
+                                <select id="co_project_select" onchange="renderSettingsCardOrder(this.value)" class="text-sm font-bold text-gray-700 bg-transparent border-0 outline-none cursor-pointer">
+                                    ${projects.map(p => `<option value="${p}" ${p === project ? 'selected' : ''}>${p}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+                        <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
+                            <span class="text-xs font-bold uppercase tracking-wider text-gray-400">ลำดับการ์ดที่แสดงผลบน Dashboard (จากซ้ายไปขวา / บนลงล่าง)</span>
+                            <span class="text-xs text-gray-400 font-medium"><i class="fa-solid fa-hand-pointer mr-1"></i> ลากเพื่อสลับ หรือกดปุ่มลูกศร</span>
+                        </div>
+
+                        <div id="co_list_container" class="space-y-2.5">
+                            <!-- Rows rendered dynamically -->
+                        </div>
+
+                        <div class="pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-100 mt-6">
+                            <button onclick="_resetCardOrderDefault()" class="px-4 py-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200 font-semibold rounded-xl transition-colors text-sm flex items-center">
+                                <i class="fa-solid fa-rotate-left mr-2"></i> คืนค่าลำดับเริ่มต้น
+                            </button>
+                            <div class="flex items-center gap-3 w-full sm:w-auto">
+                                <button onclick="renderDashboard()" class="flex-1 sm:flex-none px-5 py-2.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold rounded-xl transition text-sm">
+                                    ยกเลิก
+                                </button>
+                                <button onclick="_saveCardOrder()" class="flex-1 sm:flex-none px-6 py-2.5 bg-amber-500 text-white hover:bg-amber-600 font-semibold rounded-xl shadow-[0_4px_12px_rgba(245,158,11,0.3)] transition-all active:scale-[0.98] text-sm flex items-center justify-center">
+                                    <i class="fa-solid fa-check mr-2"></i> บันทึกลำดับการ์ด
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('mainContent').innerHTML = html;
+            _renderCardOrderRows();
+        }
+
+        function _renderCardOrderRows() {
+            const container = document.getElementById('co_list_container');
+            if (!container) return;
+
+            const cards = window._cardOrderState || [];
+            container.innerHTML = cards.map((c, idx) => {
+                const isHex = c.isHex;
+                const colorStyle = isHex ? `background-color: ${c.color}; color: white;` : '';
+                const bgClass = isHex ? '' : `bg-${c.color}-500 text-white`;
+
+                return `
+                    <div class="co-row flex items-center justify-between p-3.5 bg-[#FBFBFD] border border-gray-200/70 rounded-xl hover:border-amber-300 hover:bg-amber-50/20 transition-all select-none group"
+                         draggable="true" 
+                         data-idx="${idx}"
+                         ondragstart="_coDragStart(event, ${idx})"
+                         ondragover="_coDragOver(event)"
+                         ondragenter="_coDragEnter(event)"
+                         ondragleave="_coDragLeave(event)"
+                         ondrop="_coDrop(event, ${idx})">
+                        
+                        <div class="flex items-center gap-3.5">
+                            <!-- Drag Handle -->
+                            <div class="cursor-grab active:cursor-grabbing text-gray-300 group-hover:text-amber-500 transition-colors p-1">
+                                <i class="fa-solid fa-grip-vertical text-base"></i>
+                            </div>
+
+                            <!-- Position Index -->
+                            <span class="w-6 h-6 rounded-lg bg-gray-200/70 group-hover:bg-amber-100 group-hover:text-amber-700 text-gray-600 font-bold text-xs flex items-center justify-center transition-colors">
+                                ${idx + 1}
+                            </span>
+
+                            <!-- Card Icon -->
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-xs ${bgClass}" style="${colorStyle}">
+                                <i class="fa-solid ${c.icon || 'fa-tag'} text-sm"></i>
+                            </div>
+
+                            <!-- Card Label & Type Badge -->
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-gray-800 text-base">${c.label}</span>
+                                ${c.badge ? `<span class="text-[9px] font-extrabold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.2 rounded-full">${c.badge}</span>` : ''}
+                                ${c.type === 'all' ? `<span class="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.2 rounded-full">การ์ดรวมทั้งหมด</span>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Arrow Buttons -->
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="_moveCardOrder(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center ${idx === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-200/80 hover:text-gray-800 active:scale-95'} transition">
+                                <i class="fa-solid fa-arrow-up text-xs"></i>
+                            </button>
+                            <button type="button" onclick="_moveCardOrder(${idx}, 1)" ${idx === cards.length - 1 ? 'disabled' : ''} 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center ${idx === cards.length - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-200/80 hover:text-gray-800 active:scale-95'} transition">
+                                <i class="fa-solid fa-arrow-down text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function _moveCardOrder(idx, delta) {
+            const targetIdx = idx + delta;
+            const cards = window._cardOrderState || [];
+            if (targetIdx < 0 || targetIdx >= cards.length) return;
+
+            const item = cards.splice(idx, 1)[0];
+            cards.splice(targetIdx, 0, item);
+            _renderCardOrderRows();
+        }
+
+        let _coDragSrcIdx = null;
+
+        function _coDragStart(e, idx) {
+            _coDragSrcIdx = idx;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', idx);
+            e.currentTarget.classList.add('opacity-40');
+        }
+
+        function _coDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function _coDragEnter(e) {
+            e.currentTarget.classList.add('border-amber-400', 'bg-amber-50/40');
+        }
+
+        function _coDragLeave(e) {
+            e.currentTarget.classList.remove('border-amber-400', 'bg-amber-50/40');
+        }
+
+        function _coDrop(e, targetIdx) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('border-amber-400', 'bg-amber-50/40');
+            document.querySelectorAll('.co-row').forEach(r => r.classList.remove('opacity-40'));
+
+            if (_coDragSrcIdx === null || _coDragSrcIdx === targetIdx) return;
+            const cards = window._cardOrderState || [];
+            const item = cards.splice(_coDragSrcIdx, 1)[0];
+            cards.splice(targetIdx, 0, item);
+            _coDragSrcIdx = null;
+            _renderCardOrderRows();
+        }
+
+        function _saveCardOrder() {
+            const project = window._cardOrderProject || STATE.currentProject;
+            const cards = window._cardOrderState || [];
+            const order = cards.map(c => c.id);
+
+            showLoading(true);
+            callApi('saveCardOrder', { project, order }).then(res => {
+                showLoading(false);
+                if (res && res.success) {
+                    if (!STATE.cardOrder) STATE.cardOrder = {};
+                    STATE.cardOrder[project] = order;
+                    showToast('สำเร็จ', 'บันทึกลำดับการ์ดเรียบร้อย', 'success');
+                } else {
+                    showToast('Error', (res && res.message) || 'ไม่สามารถบันทึกได้', 'error');
+                }
+            }).catch(err => {
+                showLoading(false);
+                showToast('Error', err.message, 'error');
+            });
+        }
+
+        function _resetCardOrderDefault() {
+            const defaultOrder = ['ไม่ว่าง', 'occupied', 'ห้องว่าง', 'vacant', 'ห้องจอง', 'reserved', 'ห้องตัดหนี', 'writeoff', 'ห้องออกคืนประกัน', 'refund', 'ปรับปรุง', 'repair'];
+            const cards = window._cardOrderState || [];
+            cards.sort((a, b) => {
+                if (a.id === 'all') return 1;
+                if (b.id === 'all') return -1;
+                const idxA = defaultOrder.indexOf(a.id) !== -1 ? defaultOrder.indexOf(a.id) : 99;
+                const idxB = defaultOrder.indexOf(b.id) !== -1 ? defaultOrder.indexOf(b.id) : 99;
+                return idxA - idxB;
+            });
+            _renderCardOrderRows();
+            showToast('รีเซ็ต', 'คืนค่าลำดับเริ่มต้นแล้ว (อย่าลืมกดบันทึก)', 'info');
         }
 

@@ -139,6 +139,19 @@
             // Always add 'all' at the end
             CARD_DEFS.push({ id: 'all', label: 'ทั้งหมด', color: 'blue', isHex: false, filterFn: r => true, icon: 'fa-border-all' });
 
+            // Apply custom card order if configured
+            const projectCardOrder = STATE.cardOrder && STATE.cardOrder[STATE.currentProject];
+            if (Array.isArray(projectCardOrder) && projectCardOrder.length > 0) {
+                CARD_DEFS.sort((a, b) => {
+                    const idxA = projectCardOrder.indexOf(a.id) !== -1 ? projectCardOrder.indexOf(a.id) : 
+                                 (projectCardOrder.indexOf(a.label) !== -1 ? projectCardOrder.indexOf(a.label) : 999);
+                    const idxB = projectCardOrder.indexOf(b.id) !== -1 ? projectCardOrder.indexOf(b.id) : 
+                                 (projectCardOrder.indexOf(b.label) !== -1 ? projectCardOrder.indexOf(b.label) : 999);
+                    if (idxA !== idxB) return idxA - idxB;
+                    return 0;
+                });
+            }
+
             // Helper to get reserved card for expired booking logic
             const reservedDef = CARD_DEFS.find(c => c.label.includes('จอง') || c.id === 'reserved') || CARD_DEFS[0];
             const reservedAll = STATE.data.filter(reservedDef.filterFn);
@@ -302,9 +315,14 @@
                 <div class="p-6 max-w-7xl mx-auto fade-in-up">
                     <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <h2 class="text-2xl font-bold text-gray-800">ภาพรวมโครงการ</h2>
-                        <button onclick="openReportModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition text-sm font-medium shadow flex items-center hover:shadow-md">
-                            <i class="fa-solid fa-print mr-2"></i> รายงานภาพรวม
-                        </button>
+                        <div class="flex items-center gap-2.5">
+                            <button onclick="renderSettingsCardOrder()" class="bg-white border border-gray-200 text-gray-700 px-3.5 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-semibold shadow-xs flex items-center hover:border-amber-300" title="จัดเรียงลำดับการ์ด">
+                                <i class="fa-solid fa-arrow-down-up-across-line mr-2 text-amber-500"></i> จัดเรียงการ์ด
+                            </button>
+                            <button onclick="openReportModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition text-sm font-medium shadow flex items-center hover:shadow-md">
+                                <i class="fa-solid fa-print mr-2"></i> รายงานภาพรวม
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Main Status Cards -->

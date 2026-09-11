@@ -86,6 +86,7 @@ firebase-app/
 | `buildingStripes` | `{project}` | สีแถบหัวตึกบนแผนที่ |
 | `cardGroups` | `{project}_{cardKey}` | การจัดกลุ่มตึกสำหรับ Dashboard card |
 | `summaryCards` | auto-generated | การ์ดสรุปยอดรวมกำหนดเอง (Custom Aggregate Cards) เช่น ห้องว่างรวม |
+| `cardOrder` | `{project}` | ลำดับการแสดงผลการ์ดบน Dashboard |
 | `logs` | auto-generated | Audit log (user, project, room, action, status, timestamp) |
 | `rooms` | *(Legacy)* | ข้อมูลห้องแบบ 1 doc/room (ไม่ใช้แล้ว แต่ยังมี rules อยู่) |
 | `projectSummary` | *(Reserved)* | สรุปโครงการ (อาจไม่ได้ใช้ active) |
@@ -181,6 +182,15 @@ firebase-app/
   enabled: true,               // เปิด/ปิดการแสดงผล
   order: 0,
   createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+### Schema: cardOrder (Dashboard Cards Sorting)
+```javascript
+{
+  project: "กอล์ฟวิว",
+  order: ["ไม่ว่าง", "ห้องว่าง", "summary_xxx", "ห้องจอง", "all"], // Array of card IDs
   updatedAt: Timestamp
 }
 ```
@@ -327,6 +337,8 @@ selectProject(project)
 | `getSummaryCards` | `handleGetSummaryCardsFirebase()` | ดึงการ์ดสรุปยอดรวม |
 | `saveSummaryCard` | `handleSaveSummaryCardFirebase()` | บันทึกการ์ดสรุปยอดรวม |
 | `deleteSummaryCard` | `handleDeleteSummaryCardFirebase()` | ลบการ์ดสรุปยอดรวม |
+| `getCardOrder` | `handleGetCardOrderFirebase()` | ดึงลำดับการแสดงผลการ์ดบน Dashboard |
+| `saveCardOrder` | `handleSaveCardOrderFirebase()` | บันทึกลำดับการแสดงผลการ์ดบน Dashboard |
 
 ### Return Format
 ทุก API คืนค่ารูปแบบ `{ success: true/false, message?, data? }` — เหมือนระบบเดิม (Google Apps Script)

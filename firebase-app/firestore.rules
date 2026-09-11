@@ -81,6 +81,12 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // Card Order collection
+    match /cardOrder/{projectId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
     // Logs collection
     match /logs/{logId} {
       allow read: if isAuthenticated();
