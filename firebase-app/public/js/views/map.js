@@ -200,7 +200,13 @@
                 'ไม่ว่าง': 'occupied', 'all': 'all'
             };
             const mappedKey = keyMap[cardKey] || cardKey;
-            const config = STATE.cardGroups && (STATE.cardGroups[mappedKey] || STATE.cardGroups[cardKey]);
+            let config = STATE.cardGroups && (STATE.cardGroups[mappedKey] || STATE.cardGroups[cardKey]);
+
+            // For summary cards, fallback to vacant building groups or first enabled cardGroup
+            if ((!config || !config.enabled) && cardKey && String(cardKey).startsWith('summary_')) {
+                config = (STATE.cardGroups && (STATE.cardGroups['vacant'] || STATE.cardGroups['ห้องว่าง'])) ||
+                         Object.values(STATE.cardGroups || {}).find(cg => cg && cg.enabled && Array.isArray(cg.groups) && cg.groups.length > 0);
+            }
 
             if (!config || !config.enabled || !Array.isArray(config.groups) || config.groups.length === 0) {
                 return { mode: 'single', total };

@@ -211,6 +211,23 @@
         }
 
         // --- Modal & Save ---
+        window.toggleBookingDuration = function() {
+            const status = document.getElementById('inp_status').value;
+            const container = document.getElementById('bookingDurationContainer');
+            const noExpiry = document.getElementById('inp_noBookingExpiry');
+            const durationSelect = document.getElementById('inp_bookingDuration');
+            if (container) {
+                if (status === 'ห้องจอง' || status === 'จอง') {
+                    container.classList.remove('hidden');
+                    if (noExpiry && durationSelect) {
+                        durationSelect.disabled = noExpiry.checked;
+                    }
+                } else {
+                    container.classList.add('hidden');
+                }
+            }
+        };
+
         function openModal(rowIndex = null) {
             document.getElementById('inp_roomNo').value = '';
             document.getElementById('inp_moveInDate').value = '';
@@ -273,6 +290,12 @@
                 document.getElementById('inp_status').value = st;
                 document.getElementById('inp_moveInDate').value = item.moveInDate || '';
                 document.getElementById('inp_remark').value = item.remark || '';
+                if(document.getElementById('inp_bookingDuration')) {
+                    document.getElementById('inp_bookingDuration').value = item.bookingDuration || '30';
+                }
+                if(document.getElementById('inp_noBookingExpiry')) {
+                    document.getElementById('inp_noBookingExpiry').checked = !!item.noBookingExpiry;
+                }
 
                 const isSample = !!item.isSampleRoom;
                 document.getElementById('inp_isSampleRoom').checked = isSample;
@@ -290,10 +313,17 @@
                 document.getElementById('modalTitle').innerText = "เพิ่มห้องใหม่";
                 document.getElementById('editRowIndex').value = "";
                 document.getElementById('inp_status').value = "ห้องว่าง";
+                if(document.getElementById('inp_bookingDuration')) {
+                    document.getElementById('inp_bookingDuration').value = '30';
+                }
+                if(document.getElementById('inp_noBookingExpiry')) {
+                    document.getElementById('inp_noBookingExpiry').checked = false;
+                }
                 if (typeSelect.options.length > 0) typeSelect.selectedIndex = 0;
                 document.getElementById('inp_roomNo').disabled = false;
                 // document.getElementById('inp_roomType').disabled = false;
             }
+            window.toggleBookingDuration();
             document.getElementById('roomModal').classList.remove('hidden');
         }
 
@@ -308,13 +338,24 @@
             let status = document.getElementById('inp_status').value;
             if (!status || isSampleRoom) status = 'ห้องว่าง';
 
+            let bookingDuration = '';
+            let noBookingExpiry = false;
+            if (document.getElementById('inp_bookingDuration') && (status === 'ห้องจอง' || status === 'จอง')) {
+                bookingDuration = document.getElementById('inp_bookingDuration').value;
+                if (document.getElementById('inp_noBookingExpiry')) {
+                    noBookingExpiry = document.getElementById('inp_noBookingExpiry').checked;
+                }
+            }
+
             const formPayload = {
                 roomNo: roomNo,
                 roomType: document.getElementById('inp_roomType').value.trim(),
                 status: status,
                 moveInDate: document.getElementById('inp_moveInDate').value,
                 remark: document.getElementById('inp_remark').value.trim(),
-                isSampleRoom: isSampleRoom
+                isSampleRoom: isSampleRoom,
+                bookingDuration: bookingDuration,
+                noBookingExpiry: noBookingExpiry
             };
 
             const serverPayload = {
@@ -335,6 +376,9 @@
                         // Check if we need to remove it from view (if status changed to not vacant)
                         const currentType = document.getElementById('current_view_type') ? document.getElementById('current_view_type').value : null;
                         if (currentType) renderAvailableRoomsByType(currentType);
+                    }
+                    else if (STATE.currentView === 'status_view' && typeof renderRoomListByStatus === 'function') {
+                        renderRoomListByStatus(STATE.currentStatusKey || document.getElementById('current_status_view_title')?.dataset?.status || 'reserved');
                     }
                 }
             }

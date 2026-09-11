@@ -38,6 +38,15 @@
                             <h3 class="font-semibold text-lg text-[#1D1D1F] mb-1">ตั้งค่ากลุ่มตัวเลขการ์ด</h3>
                             <p class="text-sm text-gray-500 leading-relaxed">ตั้งกลุ่มตึกสำหรับการ์ด เช่น แยกการ์ด 'ห้องว่าง' ตามกลุ่มตึก</p>
                         </div>
+
+                        <!-- Summary Cards -->
+                        <div onclick="renderSettingsSummaryCards()" class="bg-white p-6 rounded-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer transition-all duration-300 group flex flex-col relative overflow-hidden">
+                            <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 mb-4 flex items-center justify-center group-hover:bg-teal-600 group-hover:text-white transition-colors duration-300">
+                                <i class="fa-solid fa-calculator text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-lg text-[#1D1D1F] mb-1">การ์ดสรุปยอดรวม (Summary Cards)</h3>
+                            <p class="text-sm text-gray-500 leading-relaxed">สร้างการ์ดรวมหลายสถานะบน Dashboard เช่น ห้องว่างรวม (ว่าง+ตัดหนี+ออกคืน+ปรับปรุง+ส่งซ่อม)</p>
+                        </div>
                         
                         <!-- Layout Editor -->
                         <div onclick="renderLayoutEditor()" class="bg-white p-6 rounded-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer transition-all duration-300 group flex flex-col relative overflow-hidden">
@@ -1066,6 +1075,394 @@
                     STATE.projectRoomStatuses = updated.filter(s => s.project === project);
                     renderSettingsRoomStatuses();
                     showToast('ลบสำเร็จ', 'ลบสถานะเรียบร้อย', 'success');
+                }
+            });
+        }
+
+        // =====================================================
+        // --- Summary Cards Settings (การ์ดสรุปยอดรวม) ---
+        // =====================================================
+
+        function renderSettingsSummaryCards(targetProject = null) {
+            STATE.currentView = 'settings_summary_cards';
+            const project = targetProject || (document.getElementById('sc_project_select') && document.getElementById('sc_project_select').value) || STATE.currentProject;
+
+            if (!project) return showToast('Error', 'กรุณาเลือกโครงการก่อน');
+
+            // Available projects for dropdown
+            const projects = (STATE.user && STATE.user.projects && STATE.user.projects.length > 0) ? STATE.user.projects : (typeof PROJECTS !== 'undefined' ? PROJECTS : [project]);
+
+            // Filter summary cards for this project
+            const cards = (STATE.summaryCards || []).filter(c => c.project === project);
+
+            let html = `
+                <div class="max-w-5xl mx-auto p-6 fade-in-up">
+                    <button onclick="renderSettings()" class="mb-6 text-gray-500 hover:text-teal-600 flex items-center text-sm font-semibold transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i> กลับไปหน้าตั้งค่ารวม</button>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-[#1D1D1F] tracking-tight flex items-center">
+                                <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center mr-3 shadow-sm border border-teal-100/50">
+                                    <i class="fa-solid fa-calculator text-teal-600 text-lg"></i>
+                                </div>
+                                การ์ดสรุปยอดรวม (Summary Cards)
+                            </h2>
+                            <p class="text-sm text-gray-500 mt-1 ml-13">รวมหลายสถานะห้องเข้าด้วยกัน เช่น การ์ด "ห้องว่างรวม" (ว่าง + ตัดหนี + ออกคืน + ปรับปรุง + ส่งซ่อม)</p>
+                        </div>
+
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <!-- Project Select -->
+                            <div class="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+                                <span class="text-xs font-bold text-gray-400 mr-2 uppercase">โครงการ:</span>
+                                <select id="sc_project_select" onchange="renderSettingsSummaryCards(this.value)" class="text-sm font-bold text-gray-700 bg-transparent border-0 outline-none cursor-pointer">
+                                    ${projects.map(p => `<option value="${p}" ${p === project ? 'selected' : ''}>${p}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <button onclick="openSummaryCardModal()" class="px-5 py-2.5 bg-teal-600 text-white font-semibold rounded-xl shadow-[0_4px_12px_rgba(13,148,136,0.3)] hover:bg-teal-700 hover:shadow-[0_6px_16px_rgba(13,148,136,0.4)] transition-all active:scale-[0.98] text-sm flex items-center shrink-0">
+                                <i class="fa-solid fa-plus mr-2"></i> เพิ่มการ์ดสรุปยอด
+                            </button>
+                        </div>
+                    </div>
+
+                    ${cards.length === 0 ? `
+                        <div class="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
+                            <div class="w-16 h-16 rounded-2xl bg-teal-50 text-teal-500 mx-auto flex items-center justify-center text-2xl mb-4">
+                                <i class="fa-solid fa-calculator"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-2">ยังไม่มีการ์ดสรุปยอดในโครงการ ${project}</h3>
+                            <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">สร้างการ์ดที่รวมหลายสถานะเข้าด้วยกัน เช่น "ห้องว่างรวม" เพื่อดูยอดรวมของห้องว่าง ตัดหนี ออกคืน ปรับปรุง และส่งซ่อม ในจุดเดียว</p>
+                            <button onclick="openSummaryCardModal()" class="px-5 py-2.5 bg-teal-600 text-white font-semibold rounded-xl shadow hover:bg-teal-700 transition text-sm inline-flex items-center">
+                                <i class="fa-solid fa-plus mr-2"></i> สร้างการ์ดใบแรก
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            ${cards.map(c => {
+                                const isHex = c.colorType === 'hex';
+                                const colorStyle = isHex ? `background-color: ${c.color}; color: white;` : '';
+                                const bgClass = isHex ? '' : `bg-${c.color}-500 text-white`;
+                                const isEnabled = c.enabled !== false;
+
+                                return `
+                                    <div class="bg-white rounded-2xl p-6 shadow-sm border ${isEnabled ? 'border-gray-100' : 'border-dashed border-gray-300 opacity-75'} hover:shadow-md transition-all flex flex-col justify-between">
+                                        <div>
+                                            <div class="flex items-start justify-between mb-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${bgClass}" style="${colorStyle}">
+                                                        <i class="fa-solid ${c.icon || 'fa-layer-group'} text-xl"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="flex items-center gap-2">
+                                                            <h3 class="font-bold text-gray-800 text-lg">${c.title}</h3>
+                                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-100 text-gray-500'}">${isEnabled ? 'แสดงบน Dashboard' : 'ซ่อนอยู่'}</span>
+                                                        </div>
+                                                        <span class="text-xs text-gray-400">รวมทั้งหมด ${c.statuses.length} สถานะ</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Enable/Disable Switch -->
+                                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                                    <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="toggleSummaryCardEnabled('${c.id}')" class="sr-only peer">
+                                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                                                </label>
+                                            </div>
+
+                                            <!-- Status Badges -->
+                                            <div class="mb-4">
+                                                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">สถานะที่นำมารวม:</div>
+                                                <div class="flex flex-wrap gap-1.5">
+                                                    ${c.statuses.map(st => `
+                                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200/60">
+                                                            <i class="fa-solid fa-check text-[10px] text-teal-600 mr-1.5"></i> ${st}
+                                                        </span>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 border-t border-gray-50 pt-4 mt-2">
+                                            <button onclick="openSummaryCardModal('${c.id}')" class="px-3.5 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-semibold flex items-center">
+                                                <i class="fa-solid fa-pen mr-1.5"></i> แก้ไข
+                                            </button>
+                                            <button onclick="deleteSummaryCardConfig('${c.id}')" class="px-3.5 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-xs font-semibold flex items-center">
+                                                <i class="fa-solid fa-trash mr-1.5"></i> ลบ
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+            document.getElementById('mainContent').innerHTML = html;
+        }
+
+        function openSummaryCardModal(cardId = null) {
+            const project = (document.getElementById('sc_project_select') && document.getElementById('sc_project_select').value) || STATE.currentProject;
+            const existing = cardId ? (STATE.summaryCards || []).find(c => c.id === cardId) : null;
+            const isEdit = !!existing;
+
+            const title = existing ? existing.title : '';
+            const colorType = existing ? (existing.colorType || 'predefined') : 'predefined';
+            const color = existing ? existing.color : 'teal';
+            const icon = existing ? (existing.icon || 'fa-layer-group') : 'fa-layer-group';
+            const selectedStatuses = existing ? (existing.statuses || []) : ['ห้องว่าง', 'ห้องตัดหนี', 'ห้องออกคืนประกัน', 'ปรับปรุง', 'ส่งห้องซ่อม'];
+            const enabled = existing ? (existing.enabled !== false) : true;
+
+            // Get all unique room statuses available for this project
+            const statusNamesSet = new Set();
+            if (STATE.projectRoomStatuses && STATE.projectRoomStatuses.length > 0) {
+                STATE.projectRoomStatuses.forEach(s => statusNamesSet.add(s.name));
+            } else {
+                ['ห้องว่าง', 'ไม่ว่าง', 'ห้องจอง', 'ห้องตัดหนี', 'ห้องออกคืนประกัน', 'ปรับปรุง'].forEach(s => statusNamesSet.add(s));
+            }
+            if (STATE.data && STATE.data.length > 0) {
+                STATE.data.forEach(r => { if (r.status) statusNamesSet.add(r.status); });
+            }
+            const allAvailableStatuses = Array.from(statusNamesSet).filter(Boolean);
+
+            const colorOptions = ['teal', 'emerald', 'blue', 'indigo', 'purple', 'rose', 'amber', 'orange', 'cyan', 'gray'];
+            const iconOptions = ['fa-layer-group', 'fa-door-open', 'fa-calculator', 'fa-boxes-stacked', 'fa-warehouse', 'fa-chart-pie', 'fa-wrench', 'fa-bell', 'fa-bolt', 'fa-circle-check'];
+
+            const modalHtml = `
+                <div id="summaryCardModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl w-[520px] max-w-full max-h-[92vh] flex flex-col overflow-hidden transform transition-all animate-slide-up">
+                        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                ${isEdit ? '<i class="fa-solid fa-pen-to-square text-teal-600 mr-2.5"></i> แก้ไขการ์ดสรุปยอด' : '<i class="fa-solid fa-plus text-teal-600 mr-2.5"></i> เพิ่มการ์ดสรุปยอด'}
+                            </h3>
+                            <button onclick="closeSummaryCardModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+                                <i class="fa-solid fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+
+                        <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
+                            <input type="hidden" id="scCardId" value="${existing ? existing.id : ''}">
+                            <input type="hidden" id="scProject" value="${project}">
+
+                            <!-- Title -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">ชื่อการ์ดสรุปยอด <span class="text-red-500">*</span></label>
+                                <input type="text" id="scTitle" value="${title}" placeholder="เช่น ห้องว่างรวม, ห้องรอซ่อมแซม" 
+                                       class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm font-semibold transition" />
+                            </div>
+
+                            <!-- Color Picker -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">สีของการ์ด</label>
+                                <div class="grid grid-cols-5 gap-2 mb-3">
+                                    ${colorOptions.map(c => `
+                                        <button type="button" onclick="_scSelectColor('predefined', '${c}')" 
+                                                class="sc-color-btn h-9 rounded-xl flex items-center justify-center border-2 transition ${colorType === 'predefined' && color === c ? 'border-gray-800 scale-105 shadow-sm' : 'border-transparent hover:scale-102'} bg-${c}-500 text-white" 
+                                                data-type="predefined" data-color="${c}">
+                                            ${colorType === 'predefined' && color === c ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500 font-medium">หรือกำหนดสี HEX:</span>
+                                    <input type="color" id="scHexColorInput" value="${colorType === 'hex' ? color : '#0d9488'}" 
+                                           onchange="_scSelectColor('hex', this.value)"
+                                           class="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent" />
+                                    <input type="text" id="scHexColorText" value="${colorType === 'hex' ? color : ''}" 
+                                           placeholder="#0d9488" 
+                                           oninput="_scSelectColor('hex', this.value)"
+                                           class="w-28 px-3 py-1 text-xs border border-gray-200 rounded-lg outline-none font-mono" />
+                                </div>
+                                <input type="hidden" id="scColorType" value="${colorType}">
+                                <input type="hidden" id="scColor" value="${color}">
+                            </div>
+
+                            <!-- Icon Picker -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">ไอคอน (Font Awesome)</label>
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    ${iconOptions.map(ic => `
+                                        <button type="button" onclick="_scSelectIcon('${ic}')" 
+                                                class="sc-icon-btn w-9 h-9 rounded-xl flex items-center justify-center border transition ${icon === ic ? 'bg-teal-600 text-white border-teal-600 shadow-sm' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}" 
+                                                data-icon="${ic}">
+                                            <i class="fa-solid ${ic}"></i>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                                <input type="text" id="scIconInput" value="${icon}" placeholder="fa-layer-group" 
+                                       oninput="_scSelectIcon(this.value)"
+                                       class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-mono outline-none" />
+                            </div>
+
+                            <!-- Statuses Checkboxes -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">เลือกสถานะห้องที่ต้องการรวม <span class="text-red-500">*</span></label>
+                                    <div class="space-x-2">
+                                        <button type="button" onclick="_scToggleAllStatuses(true)" class="text-[11px] text-teal-600 hover:underline font-semibold">เลือกทั้งหมด</button>
+                                        <span class="text-gray-300">|</span>
+                                        <button type="button" onclick="_scToggleAllStatuses(false)" class="text-[11px] text-gray-500 hover:underline font-semibold">ล้าง</button>
+                                    </div>
+                                </div>
+                                <div class="border border-gray-200 rounded-xl p-3 bg-gray-50/50 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                    ${allAvailableStatuses.map(st => {
+                                        const isChecked = selectedStatuses.includes(st);
+                                        return `
+                                            <label class="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100 hover:bg-teal-50/40 hover:border-teal-200 cursor-pointer transition select-none">
+                                                <span class="text-sm font-semibold text-gray-700">${st}</span>
+                                                <input type="checkbox" value="${st}" class="sc-status-cb w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500" ${isChecked ? 'checked' : ''} />
+                                            </label>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Enabled Option -->
+                            <div class="pt-2">
+                                <label class="flex items-center gap-3 cursor-pointer select-none">
+                                    <input type="checkbox" id="scEnabled" ${enabled ? 'checked' : ''} class="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500" />
+                                    <span class="text-sm font-semibold text-gray-700">เปิดแสดงผลการ์ดนี้บน Dashboard</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
+                            <button type="button" onclick="closeSummaryCardModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-semibold transition">ยกเลิก</button>
+                            <button type="button" onclick="saveSummaryCardConfig()" class="px-5 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 text-sm font-semibold shadow-md transition">บันทึกการ์ด</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function closeSummaryCardModal() {
+            const el = document.getElementById('summaryCardModal');
+            if (el) el.remove();
+        }
+
+        function _scSelectColor(type, val) {
+            document.getElementById('scColorType').value = type;
+            document.getElementById('scColor').value = val;
+            if (type === 'hex') {
+                document.getElementById('scHexColorText').value = val;
+                document.getElementById('scHexColorInput').value = val.startsWith('#') ? val : ('#' + val);
+                document.querySelectorAll('.sc-color-btn').forEach(btn => {
+                    btn.classList.remove('border-gray-800', 'scale-105');
+                    btn.innerHTML = '';
+                });
+            } else {
+                document.querySelectorAll('.sc-color-btn').forEach(btn => {
+                    if (btn.dataset.color === val) {
+                        btn.classList.add('border-gray-800', 'scale-105');
+                        btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i>';
+                    } else {
+                        btn.classList.remove('border-gray-800', 'scale-105');
+                        btn.innerHTML = '';
+                    }
+                });
+            }
+        }
+
+        function _scSelectIcon(iconClass) {
+            document.getElementById('scIconInput').value = iconClass;
+            document.querySelectorAll('.sc-icon-btn').forEach(btn => {
+                if (btn.dataset.icon === iconClass) {
+                    btn.className = 'sc-icon-btn w-9 h-9 rounded-xl flex items-center justify-center border transition bg-teal-600 text-white border-teal-600 shadow-sm';
+                } else {
+                    btn.className = 'sc-icon-btn w-9 h-9 rounded-xl flex items-center justify-center border transition bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100';
+                }
+            });
+        }
+
+        function _scToggleAllStatuses(selectAll) {
+            document.querySelectorAll('.sc-status-cb').forEach(cb => { cb.checked = selectAll; });
+        }
+
+        function saveSummaryCardConfig() {
+            const project = document.getElementById('scProject').value;
+            const id = document.getElementById('scCardId').value;
+            const title = (document.getElementById('scTitle').value || '').trim();
+            const colorType = document.getElementById('scColorType').value;
+            const color = document.getElementById('scColor').value;
+            const icon = (document.getElementById('scIconInput').value || '').trim() || 'fa-layer-group';
+            const enabled = document.getElementById('scEnabled').checked;
+
+            if (!title) {
+                return showToast('แจ้งเตือน', 'กรุณากรอกชื่อการ์ดสรุปยอด', 'error');
+            }
+
+            const checkedStatuses = Array.from(document.querySelectorAll('.sc-status-cb:checked')).map(cb => cb.value);
+            if (checkedStatuses.length === 0) {
+                return showToast('แจ้งเตือน', 'กรุณาเลือกสถานะห้องอย่างน้อย 1 สถานะ', 'error');
+            }
+
+            const cardData = {
+                id: id || undefined,
+                title: title,
+                colorType: colorType,
+                color: color,
+                icon: icon,
+                statuses: checkedStatuses,
+                enabled: enabled
+            };
+
+            showLoading(true);
+            callApi('saveSummaryCard', { project, card: cardData }).then(res => {
+                showLoading(false);
+                if (res && res.success) {
+                    showToast('สำเร็จ', 'บันทึกการ์ดสรุปยอดเรียบร้อย', 'success');
+                    closeSummaryCardModal();
+                    // Refresh summary cards
+                    fetchSummaryCards(project).then(() => {
+                        renderSettingsSummaryCards(project);
+                    });
+                } else {
+                    showToast('Error', (res && res.message) || 'ไม่สามารถบันทึกได้', 'error');
+                }
+            }).catch(err => {
+                showLoading(false);
+                showToast('Error', err.message, 'error');
+            });
+        }
+
+        function deleteSummaryCardConfig(cardId) {
+            const project = (document.getElementById('sc_project_select') && document.getElementById('sc_project_select').value) || STATE.currentProject;
+            showConfirmModal(
+                'ลบการ์ดสรุปยอด',
+                'คุณแน่ใจหรือไม่ว่าต้องการลบการ์ดสรุปยอดนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้',
+                () => {
+                    showLoading(true);
+                    callApi('deleteSummaryCard', { cardId }).then(res => {
+                        showLoading(false);
+                        if (res && res.success) {
+                            showToast('ลบสำเร็จ', 'ลบการ์ดสรุปยอดเรียบร้อย', 'success');
+                            fetchSummaryCards(project).then(() => {
+                                renderSettingsSummaryCards(project);
+                            });
+                        } else {
+                            showToast('Error', (res && res.message) || 'ไม่สามารถลบได้', 'error');
+                        }
+                    }).catch(err => {
+                        showLoading(false);
+                        showToast('Error', err.message, 'error');
+                    });
+                },
+                'fa-trash',
+                'bg-red-50 text-red-600'
+            );
+        }
+
+        function toggleSummaryCardEnabled(cardId) {
+            const project = (document.getElementById('sc_project_select') && document.getElementById('sc_project_select').value) || STATE.currentProject;
+            const card = (STATE.summaryCards || []).find(c => c.id === cardId);
+            if (!card) return;
+
+            const updatedCard = { ...card, enabled: !card.enabled };
+            callApi('saveSummaryCard', { project, card: updatedCard }, { silent: true }).then(res => {
+                if (res && res.success) {
+                    card.enabled = updatedCard.enabled;
+                    renderSettingsSummaryCards(project);
+                    showToast('สำเร็จ', updatedCard.enabled ? 'เปิดแสดงการ์ดแล้ว' : 'ซ่อนการ์ดแล้ว', 'success');
                 }
             });
         }

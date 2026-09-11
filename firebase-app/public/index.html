@@ -423,7 +423,7 @@
 
                         <div class="col-span-1">
                             <label class="label">สถานะ <span class="text-red-500">*</span></label>
-                            <select id="inp_status" class="input-field font-medium">
+                            <select id="inp_status" class="input-field font-medium" onchange="if(typeof toggleBookingDuration === 'function') toggleBookingDuration();">
                                 <option value="ห้องว่าง">ห้องว่าง</option>
                                 <option value="ห้องจอง">ห้องจอง</option>
                                 <option value="ไม่ว่าง">ไม่ว่าง</option>
@@ -433,10 +433,24 @@
                             </select>
                         </div>
 
+                        <div class="col-span-1 sm:col-span-2 hidden" id="bookingDurationContainer">
+                            <label class="label">ระยะการจอง (วัน)</label>
+                            <select id="inp_bookingDuration" class="input-field">
+                                <option value="30">30 วัน</option>
+                                <option value="45">45 วัน</option>
+                                <option value="60">60 วัน</option>
+                                <option value="180">180 วัน</option>
+                            </select>
+                            <div class="mt-2 flex items-center space-x-2">
+                                <input type="checkbox" id="inp_noBookingExpiry" onchange="if(typeof toggleBookingDuration === 'function') toggleBookingDuration();" class="w-4 h-4 text-blue-600 rounded focus:ring-apple-blue border-gray-300">
+                                <label for="inp_noBookingExpiry" class="text-sm font-medium text-gray-700 cursor-pointer">ไม่กำหนดวันครบกำหนดจอง</label>
+                            </div>
+                        </div>
+
                         <div class="col-span-1 sm:col-span-2">
                             <label class="label">วันที่เข้าอยู่ / วันที่ตัดหนี</label>
                             <input type="date" id="inp_moveInDate" class="input-field"
-                                onchange="if(this.value && document.getElementById('inp_status').value === 'ห้องว่าง') document.getElementById('inp_status').value = 'ห้องจอง';">
+                                onchange="if(this.value && document.getElementById('inp_status').value === 'ห้องว่าง') { document.getElementById('inp_status').value = 'ห้องจอง'; if(typeof toggleBookingDuration === 'function') toggleBookingDuration(); }">
                             <p class="text-xs text-gray-400 mt-1">*กรณีสถานะเป็น "ห้องจอง" หรือ "ไม่ว่าง"</p>
                         </div>
 
@@ -626,16 +640,16 @@
     <datalist id="list_addr"></datalist>
 
     <!-- Firebase Data Layer (must load before inline scripts) -->
-    <script src="js/firebase-config.js?v=25"></script>
-    <script src="js/db.js?v=25"></script>
+    <script src="js/firebase-config.js?v=28"></script>
+    <script src="js/db.js?v=28"></script>
 
     <!-- Modular Views -->
-    <script src="js/utils.js?v=25"></script>
-    <script src="js/app.js?v=25"></script>
-    <script src="js/views/dashboard.js?v=25"></script>
-    <script src="js/views/map.js?v=25"></script>
-    <script src="js/views/rooms.js?v=25"></script>
-    <script src="js/views/settings.js?v=25"></script>
+    <script src="js/utils.js?v=28"></script>
+    <script src="js/app.js?v=28"></script>
+    <script src="js/views/dashboard.js?v=28"></script>
+    <script src="js/views/map.js?v=28"></script>
+    <script src="js/views/rooms.js?v=28"></script>
+    <script src="js/views/settings.js?v=28"></script>
     <!-- Hidden elements to force Tailwind CDN to compile classes used in dynamically loaded JS views -->
     <div class="hidden">
         <div class="bg-blue-50 text-apple-blue group-hover:bg-apple-blue group-hover:text-white text-blue-700 bg-blue-100"></div>
@@ -643,7 +657,8 @@
         <div class="bg-purple-50 text-purple-500 group-hover:bg-purple-500 text-purple-700 bg-purple-100"></div>
         <div class="bg-orange-50 text-orange-500 group-hover:bg-orange-500 text-orange-700 bg-orange-100"></div>
         <div class="bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 text-green-700 bg-green-100"></div>
-        <div class="text-red-700 bg-red-100"></div>
+        <div class="bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white text-teal-700 bg-teal-100 bg-teal-500 border-teal-200"></div>
+        <div class="bg-rose-500 bg-amber-500 text-red-700 bg-red-100"></div>
     </div>
 </body>
 </html>

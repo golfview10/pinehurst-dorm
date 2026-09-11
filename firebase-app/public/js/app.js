@@ -46,7 +46,8 @@ window.SafeStorage = {
             currentFloor: null,
             roomListViewMode: 'floor_plan',
             layouts: {}, // Floor layout templates per building
-            buildingStripes: {} // Building header color config
+            buildingStripes: {}, // Building header color config
+            summaryCards: [] // Custom aggregate summary cards
         };
         // Card grouping configs loaded from backend (cardKey -> { enabled, groups: [{name, buildings: []}] })
         STATE.cardGroups = {};
@@ -411,6 +412,17 @@ window.SafeStorage = {
             });
         }
 
+        function fetchSummaryCards(project) {
+            return callApi('getSummaryCards', { project: project || STATE.currentProject }, { silent: true }).then(res => {
+                if (res && res.success) {
+                    STATE.summaryCards = res.summaryCards || [];
+                    if (STATE.currentView === 'dashboard') renderDashboard();
+                }
+            }).catch(err => {
+                console.error('[fetchSummaryCards] Error:', err);
+            });
+        }
+
         // --- Navigation & Data ---
         function showProjectSelector() {
             STATE.currentView = 'selector';
@@ -453,6 +465,7 @@ window.SafeStorage = {
             fetchLayouts(p).catch(err => { console.error('[selectProject] fetchLayouts failed:', err); }).finally(() => {
                 fetchBuildingStripes(p);
                 fetchCardGroups(p);
+                fetchSummaryCards(p);
                 fetchProjectData(p);
             });
         }
@@ -570,7 +583,7 @@ window.SafeStorage = {
                 // Show toast for new expired rooms
                 const roomList = newExpired.map(r => r.roomNo).join(', ');
                 setTimeout(() => {
-                    showToast('🔔 หลุดจองใหม่!', `ห้อง ${roomList} หลุดจอง (เกิน 30 วัน)`, 'error');
+                    showToast('🔔 หลุดจองใหม่!', `ห้อง ${roomList} หลุดจอง (เกินกำหนด)`, 'error');
                 }, 500);
             }
 

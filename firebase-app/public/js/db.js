@@ -371,6 +371,8 @@ async function handleSaveRoomDataFirebase(project, rowIndex, data, userName) {
                 remark: data.remark || '',
                 isSampleRoom: data.isSampleRoom || false,
                 bookingDate: bookingDate,
+                bookingDuration: data.bookingDuration || '',
+                noBookingExpiry: data.noBookingExpiry || false,
                 oldDocId: rowIndex || null // preserve old reference if any
             };
 
@@ -433,7 +435,8 @@ async function handleAddRoomFirebase(project, roomNo, roomType, status) {
                 moveInDate: '',
                 remark: '',
                 isSampleRoom: false,
-                bookingDate: ''
+                bookingDate: '',
+                bookingDuration: ''
             });
 
             transaction.set(buildingRef, {
@@ -773,6 +776,92 @@ async function handleSaveCardGroupsFirebase(project, cardKey, enabled, groups) {
 }
 
 // =====================================================
+// SUMMARY CARDS (Custom Aggregate Cards)
+// =====================================================
+
+async function handleGetSummaryCardsFirebase(project) {
+    if (!project) return { success: false, message: 'Missing project' };
+
+    try {
+        const snapshot = await db.collection('summaryCards')
+            .where('project', '==', project)
+            .get();
+
+        if (snapshot.empty) {
+            return { success: true, summaryCards: [] };
+        }
+
+        const cards = [];
+        snapshot.docs.forEach(doc => {
+            const d = doc.data();
+            cards.push({
+                id: doc.id,
+                project: d.project,
+                title: d.title || '',
+                color: d.color || 'teal',
+                colorType: d.colorType || 'predefined',
+                icon: d.icon || 'fa-layer-group',
+                statuses: Array.isArray(d.statuses) ? d.statuses : [],
+                enabled: d.enabled !== false,
+                order: typeof d.order === 'number' ? d.order : 0
+            });
+        });
+
+        cards.sort((a, b) => (a.order || 0) - (b.order || 0));
+        return { success: true, summaryCards: cards };
+    } catch (error) {
+        console.error('[handleGetSummaryCardsFirebase]', error);
+        return { success: true, summaryCards: [] };
+    }
+}
+
+async function handleSaveSummaryCardFirebase(project, cardData) {
+    if (!project || !cardData || !cardData.title) {
+        return { success: false, message: 'Missing required summary card data' };
+    }
+
+    try {
+        const docRef = cardData.id 
+            ? db.collection('summaryCards').doc(cardData.id) 
+            : db.collection('summaryCards').doc();
+
+        const payload = {
+            project: project,
+            title: (cardData.title || '').trim(),
+            color: cardData.color || 'teal',
+            colorType: cardData.colorType || 'predefined',
+            icon: cardData.icon || 'fa-layer-group',
+            statuses: Array.isArray(cardData.statuses) ? cardData.statuses : [],
+            enabled: cardData.enabled !== false,
+            order: typeof cardData.order === 'number' ? cardData.order : 0,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (!cardData.id) {
+            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        }
+
+        await docRef.set(payload, { merge: true });
+        return { success: true, message: 'บันทึกการ์ดสรุปยอดเรียบร้อย', id: docRef.id };
+    } catch (error) {
+        console.error('[handleSaveSummaryCardFirebase]', error);
+        return { success: false, message: error.message };
+    }
+}
+
+async function handleDeleteSummaryCardFirebase(cardId) {
+    if (!cardId) return { success: false, message: 'Missing cardId' };
+
+    try {
+        await db.collection('summaryCards').doc(cardId).delete();
+        return { success: true, message: 'ลบการ์ดสรุปยอดเรียบร้อย' };
+    } catch (error) {
+        console.error('[handleDeleteSummaryCardFirebase]', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// =====================================================
 // LOGGING
 // =====================================================
 
@@ -870,6 +959,15 @@ async function firebaseApiHandler(request) {
                     payload.enabled,
                     payload.groups
                 );
+
+            case 'getSummaryCards':
+                return await handleGetSummaryCardsFirebase(payload.project);
+
+            case 'saveSummaryCard':
+                return await handleSaveSummaryCardFirebase(payload.project, payload.card);
+
+            case 'deleteSummaryCard':
+                return await handleDeleteSummaryCardFirebase(payload.cardId || payload.id);
 
             default:
                 throw new Error("Invalid Action: " + action);

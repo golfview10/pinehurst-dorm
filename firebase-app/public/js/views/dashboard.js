@@ -1,5 +1,6 @@
         // --- Dashboard ---
         function isBookingExpired(item) {
+            if (item.noBookingExpiry) return false;
             if (item.status !== 'ห้องจอง' && item.status !== 'จอง') return false;
             const relevantDate = item.bookingDate || item.moveInDate;
             if (!relevantDate) return false;
@@ -9,7 +10,9 @@
             
             const now = new Date();
             const diffDays = Math.floor((now - bookDate) / (1000 * 60 * 60 * 24));
-            return diffDays > 30;
+            
+            const maxDays = item.bookingDuration ? parseInt(item.bookingDuration) : 30;
+            return diffDays > maxDays;
         }
 
         // Dashboard column count (persisted)
@@ -110,6 +113,29 @@
                 return orderA - orderB;
             });
             
+            // Add active Summary Cards
+            const activeSummaryCards = (STATE.summaryCards || []).filter(c => c.project === STATE.currentProject && c.enabled !== false);
+            activeSummaryCards.forEach(sc => {
+                CARD_DEFS.push({
+                    id: 'summary_' + sc.id,
+                    label: sc.title,
+                    color: sc.color || 'teal',
+                    isHex: sc.colorType === 'hex',
+                    filterFn: r => {
+                        const statuses = sc.statuses || [];
+                        if (statuses.includes(r.status)) return true;
+                        if (statuses.includes('ห้องว่าง') && (r.status === 'ว่าง' || !r.status)) return true;
+                        if (statuses.includes('ห้องจอง') && r.status === 'จอง') return true;
+                        if (statuses.includes('ห้องออกคืนประกัน') && r.status === 'คืนประกัน') return true;
+                        if (statuses.includes('ปรับปรุง') && (r.status === 'รอซ่อม' || r.status === 'ชำรุด')) return true;
+                        if (statuses.includes('ห้องตัดหนี') && r.status === 'ตัดหนี') return true;
+                        return false;
+                    },
+                    icon: sc.icon || 'fa-layer-group',
+                    isSummary: true
+                });
+            });
+
             // Always add 'all' at the end
             CARD_DEFS.push({ id: 'all', label: 'ทั้งหมด', color: 'blue', isHex: false, filterFn: r => true, icon: 'fa-border-all' });
 
@@ -119,10 +145,10 @@
             const expiredBooking = reservedAll.filter(r => isBookingExpired(r)).length;
 
             function createDashCard(config) {
-                const { id, color, icon, label, info, expiredCount, isHex } = config;
+                const { id, color, icon, label, info, expiredCount, isHex, isSummary } = config;
                 const s = getCardStyles(color, isHex);
                 return `
-                        <div onclick="renderRoomListByStatus('${id.replace(/'/g, "\\'")}')" class="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col justify-between cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${s.hoverBorder} hover:-translate-y-1 transition-all duration-300 group min-h-[160px] relative overflow-hidden">
+                        <div onclick="renderRoomListByStatus('${id.replace(/'/g, "\\'")}')" class="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border ${isSummary ? 'border-teal-200 ring-1 ring-teal-400/20' : 'border-gray-100'} flex flex-col justify-between cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${s.hoverBorder} hover:-translate-y-1 transition-all duration-300 group min-h-[160px] relative overflow-hidden">
                             <!-- Subtle Glow -->
                             <div class="absolute -right-12 -top-12 w-40 h-40 ${s.glowClass} rounded-full blur-2xl transition-opacity duration-500 pointer-events-none" ${s.glowStyle}></div>
                             
@@ -131,7 +157,12 @@
                                     <div class="w-10 h-10 rounded-xl ${s.iconBoxClass} flex items-center justify-center group-hover:scale-105 transition-transform duration-300" ${s.iconBoxStyle}>
                                         <i class="fa-solid ${icon} text-lg"></i>
                                     </div>
-                                    <span class="text-gray-500 text-sm font-semibold tracking-wide">${label}</span>
+                                    <div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="text-gray-600 text-sm font-bold tracking-wide">${label}</span>
+                                            ${isSummary ? `<span class="text-[9px] font-extrabold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded-full">สรุปยอด</span>` : ''}
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                     <i class="fa-solid fa-arrow-right text-[11px] text-gray-300 ${s.textClass}" ${s.textStyle}></i>
@@ -142,7 +173,7 @@
                                 <div class="flex flex-col justify-center flex-1 z-10 relative pb-2">
                                     <div class="flex items-baseline gap-2">
                                         <span class="text-5xl font-extrabold text-gray-800 tracking-tight">${info.total}</span>
-                                        ${expiredCount > 0 ? `<span class="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full shadow-sm" title="หลุดจอง (เกิน 30 วัน)">${expiredCount} หลุด</span>` : ''}
+                                        ${expiredCount > 0 ? `<span class="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full shadow-sm" title="หลุดจอง (เกินกำหนด)">${expiredCount} หลุด</span>` : ''}
                                     </div>
                                 </div>
                             ` : `
@@ -610,6 +641,7 @@
         // --- NEW IMPLEMENTATIONS (Reserved/Repair View Customizations) ---
         function renderRoomListByStatus(statusKey, opts = {}) {
             STATE.currentView = 'status_view';
+            STATE.currentStatusKey = statusKey;
             const config = getStatusConfig(statusKey);
             
             let title = `รายการ${statusKey}`;
@@ -618,7 +650,22 @@
             let filterFn = r => r.status === statusKey;
             let isHex = config.colorType === 'hex';
 
-            if (statusKey === 'vacant' || statusKey === 'ห้องว่าง' || statusKey === 'ว่าง') {
+            if (summaryCard) {
+                title = summaryCard.title || 'รายการสรุปยอดรวม';
+                themeColor = summaryCard.color || 'teal';
+                icon = summaryCard.icon || 'fa-layer-group';
+                isHex = summaryCard.colorType === 'hex';
+                filterFn = r => {
+                    const statuses = summaryCard.statuses || [];
+                    if (statuses.includes(r.status)) return true;
+                    if (statuses.includes('ห้องว่าง') && (r.status === 'ว่าง' || !r.status)) return true;
+                    if (statuses.includes('ห้องจอง') && r.status === 'จอง') return true;
+                    if (statuses.includes('ห้องออกคืนประกัน') && r.status === 'คืนประกัน') return true;
+                    if (statuses.includes('ปรับปรุง') && (r.status === 'รอซ่อม' || r.status === 'ชำรุด')) return true;
+                    if (statuses.includes('ห้องตัดหนี') && r.status === 'ตัดหนี') return true;
+                    return false;
+                };
+            } else if (statusKey === 'vacant' || statusKey === 'ห้องว่าง' || statusKey === 'ว่าง') {
                 title = 'รายการห้องว่าง';
                 filterFn = r => r.status === 'ห้องว่าง' || r.status === 'ว่าง' || !r.status;
             } else if (statusKey === 'reserved' || statusKey === 'ห้องจอง' || statusKey === 'จอง') {
@@ -654,7 +701,11 @@
                 'ไม่ว่าง': 'occupied', 'all': 'all'
             };
             const mappedKey = keyMap[statusKey] || statusKey;
-            const groupConfig = STATE.cardGroups && (STATE.cardGroups[mappedKey] || STATE.cardGroups[statusKey]);
+            let groupConfig = STATE.cardGroups && (STATE.cardGroups[mappedKey] || STATE.cardGroups[statusKey]);
+            if ((!groupConfig || !groupConfig.enabled) && summaryCard) {
+                groupConfig = (STATE.cardGroups && (STATE.cardGroups['vacant'] || STATE.cardGroups['ห้องว่าง'])) ||
+                             Object.values(STATE.cardGroups || {}).find(cg => cg && cg.enabled && Array.isArray(cg.groups) && cg.groups.length > 0);
+            }
             let hasGroups = groupConfig && groupConfig.enabled && Array.isArray(groupConfig.groups) && groupConfig.groups.length > 0;
             const selectedGroup = opts.groupName || 'All';
 
