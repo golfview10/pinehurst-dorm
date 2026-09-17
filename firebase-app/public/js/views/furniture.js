@@ -84,11 +84,11 @@
                             ${Object.keys(centralStock).length === 0 ? '<span class="text-xs text-gray-500">ไม่มีสต็อกส่วนกลาง</span>' : ''}
                             ${Object.entries(centralStock).map(([name, qty]) => {
                                 const icon = itemMap[name] ? itemMap[name].icon : 'fa-couch';
-                                return \`<div class="bg-white rounded px-2 py-1 flex items-center shadow-sm border border-indigo-50">
-                                    <i class="fa-solid \${icon} text-indigo-400 mr-1.5 text-[10px]"></i>
-                                    <span class="text-xs font-medium text-gray-600 mr-1.5">\${name}</span>
-                                    <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-1 rounded">\${qty}</span>
-                                </div>\`;
+                                return `<div class="bg-white rounded px-2 py-1 flex items-center shadow-sm border border-indigo-50">
+                                    <i class="fa-solid ${icon} text-indigo-400 mr-1.5 text-[10px]"></i>
+                                    <span class="text-xs font-medium text-gray-600 mr-1.5">${name}</span>
+                                    <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-1 rounded">${qty}</span>
+                                </div>`;
                             }).join('')}
                         </div>
                     </div>
@@ -102,11 +102,11 @@
                             ${Object.keys(transferred).length === 0 ? '<span class="text-xs text-gray-500">ยังไม่มีการเบิกออก</span>' : ''}
                             ${Object.entries(transferred).map(([name, qty]) => {
                                 const icon = itemMap[name] ? itemMap[name].icon : 'fa-couch';
-                                return \`<div class="bg-white rounded px-2 py-1 flex items-center shadow-sm border border-emerald-50">
-                                    <i class="fa-solid \${icon} text-emerald-400 mr-1.5 text-[10px]"></i>
-                                    <span class="text-xs font-medium text-gray-600 mr-1.5">\${name}</span>
-                                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-1 rounded">\${qty}</span>
-                                </div>\`;
+                                return `<div class="bg-white rounded px-2 py-1 flex items-center shadow-sm border border-emerald-50">
+                                    <i class="fa-solid ${icon} text-emerald-400 mr-1.5 text-[10px]"></i>
+                                    <span class="text-xs font-medium text-gray-600 mr-1.5">${name}</span>
+                                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-1 rounded">${qty}</span>
+                                </div>`;
                             }).join('')}
                         </div>
                     </div>
