@@ -191,10 +191,30 @@
 
             let sampleHtml = item.isSampleRoom ? `<div class="absolute top-0 right-0 w-3 h-3 bg-gradient-to-tr from-yellow-300 to-yellow-500 shadow-sm rounded-bl-full z-20" title="ห้องตัวอย่าง"></div>` : '';
 
+            // Calculate Furniture Count
+            let furHtml = '';
+            if (typeof parseRoomInfo === 'function' && STATE.roomFurniture) {
+                const bldgInfo = parseRoomInfo(item.roomNo);
+                const buildingFurniture = STATE.roomFurniture[bldgInfo.building] || {};
+                const roomFur = buildingFurniture[item.roomNo] || {};
+                let totalFur = 0;
+                for (const qty of Object.values(roomFur)) {
+                    if (qty > 0) totalFur += qty;
+                }
+                if (totalFur > 0) {
+                    // Show a small couch icon and the number in the bottom right corner
+                    furHtml = `
+                    <div class="absolute bottom-0 right-0 bg-white/95 text-amber-600 text-[8px] font-bold px-1 rounded-tl shadow-sm flex items-center z-20" title="มีเฟอร์นิเจอร์ ${totalFur} ชิ้น">
+                        <i class="fa-solid fa-couch mr-[2px] text-[7px] opacity-80"></i>${totalFur}
+                    </div>`;
+                }
+            }
+
             // Ultra Compact Card
             return `
                 <div class="${bgClass} relative overflow-hidden rounded shadow-sm cursor-pointer hover:brightness-110 transition flex flex-col items-center justify-center text-white ${heightClass}" ${styleAttr} onclick="openModal('${item.rowIndex}')" title="ห้อง ${item.roomNo} (${item.status || 'ห้องว่าง'})">
                     ${sampleHtml}
+                    ${furHtml}
                     <span class="font-extrabold ${fontSizeClass} leading-none text-center px-0.5 tracking-tight z-10">${item.roomNo}</span>
                 </div>
             `;
@@ -662,8 +682,8 @@
             const bldgInfo = parseRoomInfo(roomNo);
             const building = bldgInfo.building;
             
-            const bldgDoc = STATE.roomFurniture.find(d => d.id === building);
-            const roomFur = (bldgDoc && bldgDoc.rooms && bldgDoc.rooms[roomNo]) ? bldgDoc.rooms[roomNo] : {};
+            const buildingFurniture = STATE.roomFurniture[building] || {};
+            const roomFur = buildingFurniture[roomNo] || {};
 
             if (Object.keys(roomFur).length === 0) {
                 container.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">ไม่มีเฟอร์นิเจอร์ในห้องนี้</p>';
@@ -701,6 +721,13 @@
                 if (roomNo && !document.getElementById('inp_roomNo').disabled === false) {
                     renderRoomModalFurniture(roomNo);
                 }
+            }
+            
+            // Also refresh the background grid if we are on the visual map or room list
+            if (STATE.currentView === 'room_list' && typeof renderRoomList === 'function') {
+                renderRoomList(STATE.currentBuildingFilter, STATE.currentFloor);
+            } else if (STATE.currentView === 'visual_map' && typeof renderVisualMap === 'function') {
+                renderVisualMap();
             }
         });
 
