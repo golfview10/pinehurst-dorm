@@ -276,6 +276,15 @@
                                         / โซน</span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="javascript:void(0)" onclick="renderFurnitureMap()"
+                                    class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item relative border-l-4 border-transparent"
+                                    title="ผังเฟอร์นิเจอร์">
+                                    <i class="fa-solid fa-couch w-7 text-center text-lg z-10 flex-shrink-0 text-amber-500"></i>
+                                    <span
+                                        class="absolute left-12 opacity-0 -translate-x-2 sidebar-text transition-all duration-300 whitespace-nowrap font-medium z-0">ผังเฟอร์นิเจอร์</span>
+                                </a>
+                            </li>
                             <li id="nav_golf_booking_desktop" class="hidden">
                                 <a href="https://script.google.com/macros/s/AKfycbwuKrZEc-7YxKWWKidlB7Up5aQ3ygiKMLyw7qJe7phK2bKV4gg9N0H4BzBuool-4XWpJw/exec"
                                     target="_blank"
@@ -350,6 +359,13 @@
                         <i class="fa-solid fa-building text-xl group-[.active-mobile]:scale-110 transition-transform"></i>
                     </div>
                     <span class="text-[10px] mt-1 font-medium group-[.active-mobile]:font-bold group-[.active-mobile]:text-apple-blue">ผังตึก</span>
+                </a>
+                <a href="javascript:void(0)" onclick="renderFurnitureMap()"
+                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition">
+                    <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600">
+                        <i class="fa-solid fa-couch text-xl group-[.active-mobile]:scale-110 transition-transform text-amber-500"></i>
+                    </div>
+                    <span class="text-[10px] mt-1 font-medium group-[.active-mobile]:font-bold group-[.active-mobile]:text-apple-blue">เฟอร์ฯ</span>
                 </a>
 
                 <a href="https://script.google.com/macros/s/AKfycbwuKrZEc-7YxKWWKidlB7Up5aQ3ygiKMLyw7qJe7phK2bKV4gg9N0H4BzBuool-4XWpJw/exec"
@@ -648,6 +664,7 @@
     <script src="js/app.js?v=30"></script>
     <script src="js/views/dashboard.js?v=30"></script>
     <script src="js/views/map.js?v=30"></script>
+    <script src="js/views/furniture.js?v=30"></script>
     <script src="js/views/rooms.js?v=30"></script>
     <script src="js/views/settings.js?v=30"></script>
     <!-- Hidden elements to force Tailwind CDN to compile classes used in dynamically loaded JS views -->

@@ -77,6 +77,15 @@
                             <p class="text-sm text-gray-500 leading-relaxed">เพิ่มลบผู้ใช้ กำหนดสิทธิ์ และรหัสผ่านสำหรับเข้าสู่ระบบ <span class="text-[10px] font-bold text-orange-500 uppercase tracking-wider ml-1 bg-orange-50 px-2 py-0.5 rounded-md">Admin Only</span></p>
                         </div>
 
+                        <!-- Furniture Management -->
+                        <div onclick="renderSettingsFurniture()" class="bg-white p-6 rounded-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer transition-all duration-300 group flex flex-col relative overflow-hidden">
+                            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 mb-4 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
+                                <i class="fa-solid fa-couch text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-lg text-[#1D1D1F] mb-1">จัดการเฟอร์นิเจอร์</h3>
+                            <p class="text-sm text-gray-500 leading-relaxed">เพิ่มรายการเฟอร์นิเจอร์ กำหนดให้ตึกหรือห้อง และจัดการสต๊อก</p>
+                        </div>
+
                         <!-- Backup Database (Admin Only) -->
                         <div onclick="backupFullDatabase()" id="btn_backup_db" class="hidden bg-white p-6 rounded-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer transition-all duration-300 group flex flex-col relative overflow-hidden">
                             <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 mb-4 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300">
@@ -1761,5 +1770,361 @@
             });
             _renderCardOrderRows();
             showToast('รีเซ็ต', 'คืนค่าลำดับเริ่มต้นแล้ว (อย่าลืมกดบันทึก)', 'info');
+        }
+
+        // =====================================================
+        // FURNITURE SETTINGS
+        // =====================================================
+
+        /**
+         * แสดงหน้าจัดการเฟอร์นิเจอร์
+         */
+        async function renderSettingsFurniture() {
+            STATE.currentView = 'settings';
+            showLoading(true);
+
+            // Fetch latest furniture items
+            const res = await callApi('getFurnitureItems', { project: STATE.currentProject }, { silent: true });
+            if (res && res.success) {
+                STATE.furnitureItems = res.data || [];
+            }
+
+            showLoading(false);
+
+            // Get building list
+            const buildings = [...new Set(STATE.data.map(r => parseRoomInfo(r.roomNo).building))]
+                .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+            // Icon options
+            const ICON_OPTIONS = [
+                { icon: 'fa-couch', label: 'โซฟา' },
+                { icon: 'fa-tv', label: 'ทีวี' },
+                { icon: 'fa-fan', label: 'พัดลม' },
+                { icon: 'fa-snowflake', label: 'แอร์' },
+                { icon: 'fa-bed', label: 'เตียง' },
+                { icon: 'fa-chair', label: 'เก้าอี้' },
+                { icon: 'fa-table', label: 'โต๊ะ' },
+                { icon: 'fa-door-closed', label: 'ตู้' },
+                { icon: 'fa-shirt', label: 'ตู้เสื้อผ้า' },
+                { icon: 'fa-sink', label: 'อ่างล้างจาน' },
+                { icon: 'fa-shower', label: 'ฝักบัว' },
+                { icon: 'fa-lightbulb', label: 'โคมไฟ' },
+                { icon: 'fa-plug', label: 'เครื่องใช้ไฟฟ้า' },
+                { icon: 'fa-blender', label: 'เครื่องปั่น' },
+                { icon: 'fa-kitchen-set', label: 'ชุดครัว' },
+                { icon: 'fa-box', label: 'อื่นๆ' },
+            ];
+
+            const items = STATE.furnitureItems;
+
+            let html = `
+                <div class="max-w-5xl mx-auto p-6 fade-in-up">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <button onclick="renderSettings()" class="mr-3 text-gray-500 hover:text-amber-600 bg-gray-100 p-2 rounded-full transition hover:bg-gray-200">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <h2 class="text-2xl font-bold text-[#1D1D1F] tracking-tight flex items-center">
+                                <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center mr-3 shadow-sm">
+                                    <i class="fa-solid fa-couch text-amber-600 text-lg"></i>
+                                </div>
+                                จัดการเฟอร์นิเจอร์
+                            </h2>
+                        </div>
+                        <button onclick="openFurnitureItemEditor()" class="bg-amber-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-amber-600 transition text-sm shadow-sm">
+                            <i class="fa-solid fa-plus mr-1"></i> เพิ่มเฟอร์ใหม่
+                        </button>
+                    </div>
+
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
+                        <i class="fa-solid fa-info-circle mr-1"></i>
+                        กำหนดรายการเฟอร์นิเจอร์ แล้วเลือกว่าจะผูกเข้าตึกไหนบ้าง เมื่อกด "ผูกเข้าห้อง" ทุกห้องที่อยู่ในขอบเขตจะได้เฟอร์อัตโนมัติ
+                    </div>
+            `;
+
+            if (items.length === 0) {
+                html += `
+                    <div class="bg-white rounded-2xl p-10 text-center border border-gray-100 shadow-sm">
+                        <i class="fa-solid fa-couch text-5xl text-gray-200 mb-4"></i>
+                        <p class="text-gray-400 text-lg">ยังไม่มีรายการเฟอร์นิเจอร์</p>
+                        <p class="text-gray-300 text-sm mt-1">กดปุ่ม "เพิ่มเฟอร์ใหม่" เพื่อเริ่มต้น</p>
+                    </div>
+                `;
+            } else {
+                html += `<div class="space-y-3">`;
+                items.forEach(item => {
+                    const assignLabel = item.assignTo?.type === 'all' ? 'ทุกตึก'
+                        : item.assignTo?.type === 'buildings' ? `ตึก: ${(item.assignTo.targets || []).join(', ')}`
+                        : item.assignTo?.type === 'rooms' ? `ห้อง: ${(item.assignTo.targets || []).slice(0, 5).join(', ')}${(item.assignTo.targets || []).length > 5 ? '...' : ''}`
+                        : 'ยังไม่กำหนด';
+
+                    html += `
+                        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition group">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500">
+                                        <i class="fa-solid ${item.icon || 'fa-couch'} text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-gray-800 text-lg">${item.name}</h3>
+                                        <div class="flex items-center space-x-3 mt-1">
+                                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">${item.category || 'ไม่มีหมวดหมู่'}</span>
+                                            <span class="text-xs text-gray-400">จำนวนเริ่มต้น: ${item.defaultQty || 1}</span>
+                                            <span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full"><i class="fa-solid fa-building mr-1"></i>${assignLabel}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition">
+                                    <button onclick="applyFurnitureToRooms('${item.id}')" class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-600 transition" title="ผูกเฟอร์เข้าห้อง">
+                                        <i class="fa-solid fa-link mr-1"></i>ผูกเข้าห้อง
+                                    </button>
+                                    <button onclick="openFurnitureItemEditor('${item.id}')" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs hover:bg-gray-200 transition">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button onclick="deleteFurnitureItemConfirm('${item.id}', '${item.name}')" class="bg-red-50 text-red-500 px-3 py-1.5 rounded-lg text-xs hover:bg-red-100 transition">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            document.getElementById('mainContent').innerHTML = html;
+            updateActiveNav(3);
+        }
+
+        /**
+         * Modal เพิ่ม/แก้ไขรายการเฟอร์นิเจอร์
+         */
+        function openFurnitureItemEditor(itemId) {
+            const existingItem = itemId ? STATE.furnitureItems.find(fi => fi.id === itemId) : null;
+            const isEdit = !!existingItem;
+
+            const buildings = [...new Set(STATE.data.map(r => parseRoomInfo(r.roomNo).building))]
+                .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+            const ICON_OPTIONS = [
+                { icon: 'fa-couch', label: 'โซฟา' },
+                { icon: 'fa-tv', label: 'ทีวี' },
+                { icon: 'fa-fan', label: 'พัดลม' },
+                { icon: 'fa-snowflake', label: 'แอร์' },
+                { icon: 'fa-bed', label: 'เตียง' },
+                { icon: 'fa-chair', label: 'เก้าอี้' },
+                { icon: 'fa-table', label: 'โต๊ะ' },
+                { icon: 'fa-door-closed', label: 'ตู้' },
+                { icon: 'fa-shirt', label: 'ตู้เสื้อผ้า' },
+                { icon: 'fa-sink', label: 'อ่างล้างจาน' },
+                { icon: 'fa-shower', label: 'ฝักบัว' },
+                { icon: 'fa-lightbulb', label: 'โคมไฟ' },
+                { icon: 'fa-plug', label: 'เครื่องใช้ไฟฟ้า' },
+                { icon: 'fa-kitchen-set', label: 'ชุดครัว' },
+                { icon: 'fa-box', label: 'อื่นๆ' },
+            ];
+
+            const assignType = existingItem?.assignTo?.type || 'all';
+            const assignTargets = existingItem?.assignTo?.targets || [];
+
+            const modalHtml = `
+                <div id="furnitureEditorModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden" onclick="event.stopPropagation()">
+                        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50">
+                            <h3 class="font-bold text-lg text-amber-700">
+                                <i class="fa-solid ${isEdit ? 'fa-pen' : 'fa-plus'} mr-2"></i>${isEdit ? 'แก้ไข' : 'เพิ่ม'}เฟอร์นิเจอร์
+                            </h3>
+                            <button onclick="document.getElementById('furnitureEditorModal').remove()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fa-solid fa-xmark text-xl"></i>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">ชื่อเฟอร์นิเจอร์ *</label>
+                                <input type="text" id="fur_ed_name" value="${existingItem?.name || ''}" placeholder="เช่น ทีวี, แอร์, พัดลม" 
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">หมวดหมู่</label>
+                                <input type="text" id="fur_ed_category" value="${existingItem?.category || ''}" placeholder="เช่น เครื่องใช้ไฟฟ้า, เฟอร์นิเจอร์" 
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">จำนวนเริ่มต้นต่อห้อง</label>
+                                <input type="number" id="fur_ed_qty" value="${existingItem?.defaultQty || 1}" min="1" 
+                                       class="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ไอคอน</label>
+                                <div class="grid grid-cols-8 gap-2" id="fur_icon_grid">
+                                    ${ICON_OPTIONS.map(o => `
+                                        <button type="button" onclick="document.querySelectorAll('#fur_icon_grid button').forEach(b=>b.classList.remove('ring-2','ring-amber-500','bg-amber-50'));this.classList.add('ring-2','ring-amber-500','bg-amber-50');document.getElementById('fur_ed_icon').value='${o.icon}'"
+                                                class="p-2 rounded-lg border border-gray-200 hover:bg-amber-50 transition text-center ${(existingItem?.icon || 'fa-couch') === o.icon ? 'ring-2 ring-amber-500 bg-amber-50' : ''}" title="${o.label}">
+                                            <i class="fa-solid ${o.icon} text-lg text-gray-600"></i>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                                <input type="hidden" id="fur_ed_icon" value="${existingItem?.icon || 'fa-couch'}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ขอบเขตการผูก</label>
+                                <select id="fur_ed_assignType" onchange="toggleFurAssignTargets()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 mb-2">
+                                    <option value="all" ${assignType === 'all' ? 'selected' : ''}>ทุกตึก</option>
+                                    <option value="buildings" ${assignType === 'buildings' ? 'selected' : ''}>เลือกตึก</option>
+                                    <option value="rooms" ${assignType === 'rooms' ? 'selected' : ''}>เลือกห้อง</option>
+                                </select>
+                                <div id="fur_assign_targets" class="${assignType === 'all' ? 'hidden' : ''}">
+                                    ${assignType === 'buildings' || assignType === 'all' ? `
+                                        <div id="fur_building_targets" class="flex flex-wrap gap-2">
+                                            ${buildings.map(b => `
+                                                <label class="inline-flex items-center space-x-1 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200 cursor-pointer hover:bg-amber-50 transition text-sm">
+                                                    <input type="checkbox" name="fur_assign_bldg" value="${b}" ${assignTargets.includes(b) ? 'checked' : ''} class="rounded text-amber-500">
+                                                    <span>${b}</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
+                                    ${assignType === 'rooms' ? `
+                                        <textarea id="fur_room_targets" placeholder="ใส่เลขห้อง คั่นด้วยจุลภาค เช่น A1101, A1102, B2301" rows="3" 
+                                                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">${assignTargets.join(', ')}</textarea>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 border-t border-gray-100">
+                            <button onclick="saveFurnitureItemFromEditor('${itemId || ''}')" class="w-full bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 transition">
+                                <i class="fa-solid fa-check mr-2"></i>${isEdit ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function toggleFurAssignTargets() {
+            const type = document.getElementById('fur_ed_assignType').value;
+            const container = document.getElementById('fur_assign_targets');
+
+            if (type === 'all') {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+
+                const buildings = [...new Set(STATE.data.map(r => parseRoomInfo(r.roomNo).building))]
+                    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+                if (type === 'buildings') {
+                    container.innerHTML = `
+                        <div class="flex flex-wrap gap-2">
+                            ${buildings.map(b => `
+                                <label class="inline-flex items-center space-x-1 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200 cursor-pointer hover:bg-amber-50 transition text-sm">
+                                    <input type="checkbox" name="fur_assign_bldg" value="${b}" class="rounded text-amber-500">
+                                    <span>${b}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (type === 'rooms') {
+                    container.innerHTML = `
+                        <textarea id="fur_room_targets" placeholder="ใส่เลขห้อง คั่นด้วยจุลภาค เช่น A1101, A1102, B2301" rows="3" 
+                                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                    `;
+                }
+            }
+        }
+
+        async function saveFurnitureItemFromEditor(existingId) {
+            const name = document.getElementById('fur_ed_name')?.value?.trim();
+            if (!name) {
+                showToast('ข้อมูลไม่ครบ', 'กรุณาใส่ชื่อเฟอร์นิเจอร์', 'error');
+                return;
+            }
+
+            const category = document.getElementById('fur_ed_category')?.value?.trim() || '';
+            const icon = document.getElementById('fur_ed_icon')?.value || 'fa-couch';
+            const defaultQty = parseInt(document.getElementById('fur_ed_qty')?.value || '1');
+            const assignType = document.getElementById('fur_ed_assignType')?.value || 'all';
+
+            let targets = [];
+            if (assignType === 'buildings') {
+                targets = Array.from(document.querySelectorAll('input[name="fur_assign_bldg"]:checked')).map(cb => cb.value);
+            } else if (assignType === 'rooms') {
+                const raw = document.getElementById('fur_room_targets')?.value || '';
+                targets = raw.split(',').map(s => s.trim()).filter(s => s);
+            }
+
+            const item = {
+                id: existingId || undefined,
+                name, category, icon, defaultQty,
+                assignTo: { type: assignType, targets }
+            };
+
+            showLoading(true);
+            const res = await callApi('saveFurnitureItem', {
+                project: STATE.currentProject,
+                item
+            }, { silent: true });
+            showLoading(false);
+
+            if (res.success) {
+                document.getElementById('furnitureEditorModal')?.remove();
+                showToast('สำเร็จ', `${existingId ? 'แก้ไข' : 'เพิ่ม'}เฟอร์นิเจอร์เรียบร้อย`, 'success');
+                renderSettingsFurniture();
+            } else {
+                showToast('ผิดพลาด', res.message, 'error');
+            }
+        }
+
+        function deleteFurnitureItemConfirm(id, name) {
+            showConfirmModal(
+                'ลบเฟอร์นิเจอร์',
+                `ต้องการลบ "${name}" ออกจากรายการหรือไม่?`,
+                async () => {
+                    showLoading(true);
+                    const res = await callApi('deleteFurnitureItem', { itemId: id }, { silent: true });
+                    showLoading(false);
+
+                    if (res.success) {
+                        showToast('สำเร็จ', 'ลบเรียบร้อย', 'success');
+                        renderSettingsFurniture();
+                    } else {
+                        showToast('ผิดพลาด', res.message, 'error');
+                    }
+                },
+                'fa-trash',
+                'bg-red-500'
+            );
+        }
+
+        async function applyFurnitureToRooms(itemId) {
+            const item = STATE.furnitureItems.find(fi => fi.id === itemId);
+            if (!item) return;
+
+            showConfirmModal(
+                'ผูกเฟอร์เข้าห้อง',
+                `ผูก "${item.name}" (จำนวน ${item.defaultQty || 1} ชิ้น/ห้อง) เข้าห้องตามขอบเขตที่กำหนด?\n\nห้องที่มีเฟอร์อยู่แล้วจะไม่ถูกเขียนทับ`,
+                async () => {
+                    showLoading(true);
+                    const res = await handleApplyFurnitureAssignmentFirebase(
+                        STATE.currentProject,
+                        item.name,
+                        item.defaultQty || 1,
+                        item.assignTo
+                    );
+                    showLoading(false);
+
+                    if (res.success) {
+                        showToast('สำเร็จ', res.message, 'success');
+                        fetchFurnitureData(STATE.currentProject);
+                    } else {
+                        showToast('ผิดพลาด', res.message, 'error');
+                    }
+                },
+                'fa-link',
+                'bg-emerald-500'
+            );
         }
 

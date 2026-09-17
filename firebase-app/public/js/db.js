@@ -1013,6 +1013,39 @@ async function firebaseApiHandler(request) {
             case 'saveCardOrder':
                 return await handleSaveCardOrderFirebase(payload.project, payload.order);
 
+            // =====================================================
+            // FURNITURE MANAGEMENT API
+            // =====================================================
+            case 'getFurnitureItems':
+                return await handleGetFurnitureItemsFirebase(payload.project);
+
+            case 'saveFurnitureItem':
+                return await handleSaveFurnitureItemFirebase(payload.project, payload.item);
+
+            case 'deleteFurnitureItem':
+                return await handleDeleteFurnitureItemFirebase(payload.itemId);
+
+            case 'getRoomFurniture':
+                return await handleGetRoomFurnitureFirebase(payload.project);
+
+            case 'returnFurniture':
+                return await handleReturnFurnitureFirebase(payload.project, payload.roomNo, payload.furnitureName, payload.quantity, payload.userName, payload.remark);
+
+            case 'addFurnitureToRoom':
+                return await handleAddFurnitureToRoomFirebase(payload.project, payload.roomNo, payload.furnitureName, payload.quantity, payload.userName, payload.remark);
+
+            case 'transferToCentral':
+                return await handleTransferToCentralFirebase(payload.project, payload.building, payload.furnitureName, payload.quantity, payload.userName, payload.remark);
+
+            case 'transferFromCentral':
+                return await handleTransferFromCentralFirebase(payload.project, payload.building, payload.furnitureName, payload.quantity, payload.userName, payload.remark);
+
+            case 'getFurnitureStock':
+                return await handleGetFurnitureStockFirebase(payload.project);
+
+            case 'getFurnitureLogs':
+                return await handleGetFurnitureLogsFirebase(payload.project, payload.filters);
+
             default:
                 throw new Error("Invalid Action: " + action);
         }
@@ -1022,4 +1055,492 @@ async function firebaseApiHandler(request) {
     }
 }
 
-console.log('[DB] Firebase Data Layer loaded - 16 API handlers ready');
+// =====================================================
+// FURNITURE MANAGEMENT FUNCTIONS
+// =====================================================
+
+// --- Real-time listener for room furniture ---
+const furnitureListeners = {};
+const roomFurnitureCache = {};
+
+/**
+ * ดึงรายการเฟอร์นิเจอร์ (Master List) ตาม project
+ */
+async function handleGetFurnitureItemsFirebase(project) {
+    try {
+        const snapshot = await db.collection('furnitureItems')
+            .where('project', '==', project)
+            .get();
+
+        const items = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        return { success: true, data: items };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * บันทึกรายการเฟอร์นิเจอร์ (เพิ่ม/แก้ไข)
+ */
+async function handleSaveFurnitureItemFirebase(project, item) {
+    try {
+        const data = {
+            project: project,
+            name: item.name,
+            category: item.category || '',
+            icon: item.icon || 'fa-couch',
+            defaultQty: item.defaultQty || 1,
+            assignTo: item.assignTo || { type: 'all', targets: [] },
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (item.id) {
+            // Update existing
+            await db.collection('furnitureItems').doc(item.id).update(data);
+        } else {
+            // Add new
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('furnitureItems').add(data);
+        }
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * ลบรายการเฟอร์นิเจอร์
+ */
+async function handleDeleteFurnitureItemFirebase(itemId) {
+    try {
+        await db.collection('furnitureItems').doc(itemId).delete();
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * ดึงข้อมูลเฟอร์ในแต่ละห้อง (Mega-Doc per building) + real-time listener
+ */
+async function handleGetRoomFurnitureFirebase(project) {
+    try {
+        // Unsubscribe old listener for this project
+        if (furnitureListeners[project]) {
+            furnitureListeners[project]();
+            delete furnitureListeners[project];
+        }
+
+        // Set up real-time listener
+        await new Promise((resolve, reject) => {
+            const unsubscribe = db.collection('roomFurniture')
+                .where('project', '==', project)
+                .onSnapshot(snapshot => {
+                    const result = {};
+                    snapshot.docs.forEach(doc => {
+                        const d = doc.data();
+                        if (d.building && d.rooms) {
+                            result[d.building] = d.rooms;
+                        }
+                    });
+
+                    roomFurnitureCache[project] = result;
+
+                    // Dispatch event for UI re-render
+                    window.dispatchEvent(new CustomEvent('roomFurnitureUpdated', {
+                        detail: { project, data: result }
+                    }));
+
+                    resolve();
+                }, error => {
+                    console.error('[Furniture Realtime Error]', error);
+                    reject(error);
+                });
+
+            furnitureListeners[project] = unsubscribe;
+        });
+
+        return { success: true, data: roomFurnitureCache[project] || {} };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * คืนเฟอร์จากห้อง → สต๊อกตึก (Transaction)
+ */
+async function handleReturnFurnitureFirebase(project, roomNo, furnitureName, quantity, userName, remark) {
+    try {
+        const info = parseRoomInfoForDb(roomNo);
+        const building = info.building;
+        const furDocId = `${project}_${building}`;
+        const stockDocId = `${project}_building_${building}`;
+
+        const furRef = db.collection('roomFurniture').doc(furDocId);
+        const stockRef = db.collection('furnitureStock').doc(stockDocId);
+
+        await db.runTransaction(async (transaction) => {
+            const furDoc = await transaction.get(furRef);
+            const stockDoc = await transaction.get(stockRef);
+
+            // Update room furniture
+            let rooms = furDoc.exists ? (furDoc.data().rooms || {}) : {};
+            let roomItems = rooms[roomNo] || {};
+            const currentQty = roomItems[furnitureName] || 0;
+
+            if (currentQty < quantity) {
+                throw new Error(`ห้อง ${roomNo} มี ${furnitureName} แค่ ${currentQty} ชิ้น ไม่สามารถคืน ${quantity} ชิ้นได้`);
+            }
+
+            const newQty = currentQty - quantity;
+            if (newQty <= 0) {
+                delete roomItems[furnitureName];
+            } else {
+                roomItems[furnitureName] = newQty;
+            }
+            rooms[roomNo] = roomItems;
+
+            transaction.set(furRef, {
+                project, building, rooms,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // Update building stock
+            let stockItems = stockDoc.exists ? (stockDoc.data().items || {}) : {};
+            stockItems[furnitureName] = (stockItems[furnitureName] || 0) + quantity;
+
+            transaction.set(stockRef, {
+                project, type: 'building', building,
+                items: stockItems,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        });
+
+        // Log
+        await logFurnitureAction(userName, project, 'return', furnitureName, roomNo, info.building, quantity, remark);
+
+        return { success: true, message: `คืน ${furnitureName} x${quantity} จากห้อง ${roomNo} สำเร็จ` };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * เพิ่มเฟอร์เข้าห้อง ← สต๊อกตึก (Transaction)
+ */
+async function handleAddFurnitureToRoomFirebase(project, roomNo, furnitureName, quantity, userName, remark) {
+    try {
+        const info = parseRoomInfoForDb(roomNo);
+        const building = info.building;
+        const furDocId = `${project}_${building}`;
+        const stockDocId = `${project}_building_${building}`;
+
+        const furRef = db.collection('roomFurniture').doc(furDocId);
+        const stockRef = db.collection('furnitureStock').doc(stockDocId);
+
+        await db.runTransaction(async (transaction) => {
+            const furDoc = await transaction.get(furRef);
+            const stockDoc = await transaction.get(stockRef);
+
+            // Check stock
+            let stockItems = stockDoc.exists ? (stockDoc.data().items || {}) : {};
+            const stockQty = stockItems[furnitureName] || 0;
+
+            if (stockQty < quantity) {
+                throw new Error(`สต๊อกตึก ${building} มี ${furnitureName} แค่ ${stockQty} ชิ้น ไม่พอเพิ่ม ${quantity} ชิ้น`);
+            }
+
+            // Deduct from stock
+            stockItems[furnitureName] = stockQty - quantity;
+            if (stockItems[furnitureName] <= 0) delete stockItems[furnitureName];
+
+            transaction.set(stockRef, {
+                project, type: 'building', building,
+                items: stockItems,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // Add to room
+            let rooms = furDoc.exists ? (furDoc.data().rooms || {}) : {};
+            let roomItems = rooms[roomNo] || {};
+            roomItems[furnitureName] = (roomItems[furnitureName] || 0) + quantity;
+            rooms[roomNo] = roomItems;
+
+            transaction.set(furRef, {
+                project, building, rooms,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        });
+
+        await logFurnitureAction(userName, project, 'add', furnitureName, roomNo, info.building, quantity, remark);
+
+        return { success: true, message: `เพิ่ม ${furnitureName} x${quantity} เข้าห้อง ${roomNo} สำเร็จ` };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * เบิกเฟอร์จากสต๊อกตึก → สต๊อกส่วนกลาง (Transaction)
+ */
+async function handleTransferToCentralFirebase(project, building, furnitureName, quantity, userName, remark) {
+    try {
+        const buildingStockId = `${project}_building_${building}`;
+        const centralStockId = `${project}_central`;
+
+        const bRef = db.collection('furnitureStock').doc(buildingStockId);
+        const cRef = db.collection('furnitureStock').doc(centralStockId);
+
+        await db.runTransaction(async (transaction) => {
+            const bDoc = await transaction.get(bRef);
+            const cDoc = await transaction.get(cRef);
+
+            // Check building stock
+            let bItems = bDoc.exists ? (bDoc.data().items || {}) : {};
+            const bQty = bItems[furnitureName] || 0;
+
+            if (bQty < quantity) {
+                throw new Error(`สต๊อกตึก ${building} มี ${furnitureName} แค่ ${bQty} ชิ้น ไม่พอเบิก ${quantity} ชิ้น`);
+            }
+
+            // Deduct from building stock
+            bItems[furnitureName] = bQty - quantity;
+            if (bItems[furnitureName] <= 0) delete bItems[furnitureName];
+
+            transaction.set(bRef, {
+                project, type: 'building', building,
+                items: bItems,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // Add to central stock
+            let cItems = cDoc.exists ? (cDoc.data().items || {}) : {};
+            cItems[furnitureName] = (cItems[furnitureName] || 0) + quantity;
+
+            transaction.set(cRef, {
+                project, type: 'central', building: null,
+                items: cItems,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        });
+
+        await logFurnitureAction(userName, project, 'transfer_to_central', furnitureName, null, building, quantity, remark);
+
+        return { success: true, message: `เบิก ${furnitureName} x${quantity} จากตึก ${building} ไปส่วนกลาง สำเร็จ` };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * เบิกเฟอร์จากสต๊อกส่วนกลาง → สต๊อกตึก (Transaction)
+ */
+async function handleTransferFromCentralFirebase(project, building, furnitureName, quantity, userName, remark) {
+    try {
+        const buildingStockId = `${project}_building_${building}`;
+        const centralStockId = `${project}_central`;
+
+        const bRef = db.collection('furnitureStock').doc(buildingStockId);
+        const cRef = db.collection('furnitureStock').doc(centralStockId);
+
+        await db.runTransaction(async (transaction) => {
+            const cDoc = await transaction.get(cRef);
+            const bDoc = await transaction.get(bRef);
+
+            // Check central stock
+            let cItems = cDoc.exists ? (cDoc.data().items || {}) : {};
+            const cQty = cItems[furnitureName] || 0;
+
+            if (cQty < quantity) {
+                throw new Error(`สต๊อกส่วนกลางมี ${furnitureName} แค่ ${cQty} ชิ้น ไม่พอเบิก ${quantity} ชิ้น`);
+            }
+
+            // Deduct from central
+            cItems[furnitureName] = cQty - quantity;
+            if (cItems[furnitureName] <= 0) delete cItems[furnitureName];
+
+            transaction.set(cRef, {
+                project, type: 'central', building: null,
+                items: cItems,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // Add to building stock
+            let bItems = bDoc.exists ? (bDoc.data().items || {}) : {};
+            bItems[furnitureName] = (bItems[furnitureName] || 0) + quantity;
+
+            transaction.set(bRef, {
+                project, type: 'building', building,
+                items: bItems,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        });
+
+        await logFurnitureAction(userName, project, 'transfer_from_central', furnitureName, null, building, quantity, remark);
+
+        return { success: true, message: `เบิก ${furnitureName} x${quantity} จากส่วนกลางไปตึก ${building} สำเร็จ` };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * ดึงสต๊อกเฟอร์ทั้งหมด (ตึก + ส่วนกลาง) ของโครงการ
+ */
+async function handleGetFurnitureStockFirebase(project) {
+    try {
+        const snapshot = await db.collection('furnitureStock')
+            .where('project', '==', project)
+            .get();
+
+        const buildings = {};
+        let central = {};
+
+        snapshot.docs.forEach(doc => {
+            const d = doc.data();
+            if (d.type === 'building' && d.building) {
+                buildings[d.building] = d.items || {};
+            } else if (d.type === 'central') {
+                central = d.items || {};
+            }
+        });
+
+        return { success: true, data: { buildings, central } };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * ดึง Audit Trail เฟอร์นิเจอร์
+ */
+async function handleGetFurnitureLogsFirebase(project, filters) {
+    try {
+        let query = db.collection('furnitureLogs')
+            .where('project', '==', project)
+            .orderBy('timestamp', 'desc')
+            .limit(200);
+
+        if (filters && filters.building) {
+            query = query.where('building', '==', filters.building);
+        }
+
+        const snapshot = await query.get();
+        const logs = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp ? doc.data().timestamp.toDate().toISOString() : null
+        }));
+
+        return { success: true, data: logs };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * บันทึก Furniture Audit Log
+ */
+async function logFurnitureAction(userName, project, action, furnitureName, roomNo, building, quantity, remark) {
+    try {
+        await db.collection('furnitureLogs').add({
+            userName: userName || 'Unknown',
+            project: project,
+            action: action,
+            furnitureName: furnitureName,
+            roomNo: roomNo || null,
+            building: building || null,
+            quantity: quantity || 1,
+            remark: remark || '',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error('[logFurnitureAction Error]', e);
+    }
+}
+
+/**
+ * ผูกเฟอร์เข้าตึก/ห้อง (Batch write) — เมื่อกำหนด assignTo ใน furnitureItems
+ * เรียกหลัง saveFurnitureItem เพื่อ populate roomFurniture
+ */
+async function handleApplyFurnitureAssignmentFirebase(project, furnitureName, defaultQty, assignTo) {
+    try {
+        if (!assignTo || !assignTo.type) {
+            return { success: false, message: 'กรุณากำหนดขอบเขตการผูกเฟอร์' };
+        }
+
+        // Get all rooms for the project
+        const roomsSnapshot = await db.collection('buildingRooms')
+            .where('project', '==', project)
+            .get();
+
+        // Determine which buildings/rooms to assign
+        const batch = db.batch();
+        const updatedBuildings = new Set();
+
+        roomsSnapshot.docs.forEach(doc => {
+            const d = doc.data();
+            const building = d.building;
+            const rooms = d.rooms || [];
+
+            // Check if this building should get the furniture
+            let shouldAssign = false;
+            if (assignTo.type === 'all') {
+                shouldAssign = true;
+            } else if (assignTo.type === 'buildings') {
+                shouldAssign = assignTo.targets.includes(building);
+            }
+
+            if (shouldAssign || assignTo.type === 'rooms') {
+                const furDocId = `${project}_${building}`;
+                const furRef = db.collection('roomFurniture').doc(furDocId);
+
+                // We need to read current data first
+                updatedBuildings.add({ building, rooms, furRef, furDocId });
+            }
+        });
+
+        // Process each building
+        for (const { building, rooms, furRef, furDocId } of updatedBuildings) {
+            const furDoc = await furRef.get();
+            let existingRooms = furDoc.exists ? (furDoc.data().rooms || {}) : {};
+
+            rooms.forEach(room => {
+                const roomNo = room.roomNo;
+
+                // For 'rooms' type, only assign to specific rooms
+                if (assignTo.type === 'rooms' && !assignTo.targets.includes(roomNo)) {
+                    return;
+                }
+
+                if (!existingRooms[roomNo]) {
+                    existingRooms[roomNo] = {};
+                }
+
+                // Only add if not already present
+                if (!existingRooms[roomNo][furnitureName]) {
+                    existingRooms[roomNo][furnitureName] = defaultQty;
+                }
+            });
+
+            batch.set(furRef, {
+                project, building,
+                rooms: existingRooms,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+
+        await batch.commit();
+
+        return { success: true, message: `ผูก ${furnitureName} เข้าห้องสำเร็จ` };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+console.log('[DB] Firebase Data Layer loaded - 26 API handlers ready (includes Furniture Management)');

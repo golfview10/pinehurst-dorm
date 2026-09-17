@@ -92,5 +92,33 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
     }
+
+    // =====================================================
+    // FURNITURE MANAGEMENT COLLECTIONS
+    // =====================================================
+
+    // Furniture Items (Master List)
+    match /furnitureItems/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Room Furniture (Mega-Document per building)
+    match /roomFurniture/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Furniture Stock (Building + Central)
+    match /furnitureStock/{stockId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Furniture Logs (Audit Trail — no update/delete)
+    match /furnitureLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
   }
 }

@@ -48,7 +48,14 @@ window.SafeStorage = {
             layouts: {}, // Floor layout templates per building
             buildingStripes: {}, // Building header color config
             summaryCards: [], // Custom aggregate summary cards
-            cardOrder: {} // Custom card display order per project
+            cardOrder: {}, // Custom card display order per project
+            // --- Furniture Management ---
+            furnitureItems: [],      // รายการเฟอร์ทั้งหมดของโครงการ
+            roomFurniture: {},       // เฟอร์ในห้อง per building: { "A1": { "A1101": { "ทีวี": 1 }, ... } }
+            furnitureStock: {        // สต๊อก
+                buildings: {},       // { "A1": { "ทีวี": 3, "แอร์": 1 }, ... }
+                central: {}          // { "ทีวี": 1, "พัดลม": 2 }
+            }
         };
         // Card grouping configs loaded from backend (cardKey -> { enabled, groups: [{name, buildings: []}] })
         STATE.cardGroups = {};
@@ -82,6 +89,17 @@ window.SafeStorage = {
                 else if (STATE.currentView === 'visual_map') renderVisualMap();
                 else if (STATE.currentView === 'room_list' && STATE.currentBuildingFilter) {
                     renderRoomList(STATE.currentBuildingFilter, STATE.currentFloor);
+                }
+            }
+        });
+
+        // --- Real-time Furniture Updates Listener ---
+        window.addEventListener('roomFurnitureUpdated', (e) => {
+            const { project, data } = e.detail;
+            if (STATE.currentProject === project) {
+                STATE.roomFurniture = data;
+                if (STATE.currentView === 'furniture_map') {
+                    if (typeof renderFurnitureMap === 'function') renderFurnitureMap();
                 }
             }
         });
@@ -480,6 +498,7 @@ window.SafeStorage = {
                 fetchCardGroups(p);
                 fetchSummaryCards(p);
                 fetchCardOrder(p);
+                fetchFurnitureData(p);
                 fetchProjectData(p);
             });
         }
@@ -530,6 +549,30 @@ window.SafeStorage = {
                     }
                 }
             });
+        }
+
+        // --- Furniture Data Fetching ---
+        function fetchFurnitureData(project) {
+            // Fetch furniture items (master list)
+            callApi('getFurnitureItems', { project }, { silent: true }).then(res => {
+                if (res && res.success) {
+                    STATE.furnitureItems = res.data || [];
+                }
+            }).catch(err => console.error('[fetchFurnitureItems] Error:', err));
+
+            // Fetch room furniture (real-time listener)
+            callApi('getRoomFurniture', { project }, { silent: true }).then(res => {
+                if (res && res.success) {
+                    STATE.roomFurniture = res.data || {};
+                }
+            }).catch(err => console.error('[fetchRoomFurniture] Error:', err));
+
+            // Fetch furniture stock
+            callApi('getFurnitureStock', { project }, { silent: true }).then(res => {
+                if (res && res.success) {
+                    STATE.furnitureStock = res.data || { buildings: {}, central: {} };
+                }
+            }).catch(err => console.error('[fetchFurnitureStock] Error:', err));
         }
 
         // --- Notification System ---
