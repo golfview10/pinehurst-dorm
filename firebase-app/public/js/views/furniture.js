@@ -47,6 +47,73 @@
                     <div class="p-6 space-y-6 pb-24 overflow-y-auto">
             `;
 
+            // Calculate Stock Summaries
+            const centralStock = STATE.furnitureStock?.central || {};
+            const buildingStock = STATE.furnitureStock?.buildings || {};
+            const transferred = {};
+            
+            // 1. Add building stock (transferred to buildings but not in rooms)
+            for (const items of Object.values(buildingStock)) {
+                for (const [name, qty] of Object.entries(items)) {
+                    transferred[name] = (transferred[name] || 0) + qty;
+                }
+            }
+            // 2. Add room furniture (transferred to buildings and placed in rooms)
+            for (const rooms of Object.values(STATE.roomFurniture || {})) {
+                for (const items of Object.values(rooms)) {
+                    for (const [name, qty] of Object.entries(items)) {
+                        transferred[name] = (transferred[name] || 0) + qty;
+                    }
+                }
+            }
+
+            const itemMap = {};
+            STATE.furnitureItems.forEach(fi => { itemMap[fi.name] = fi; });
+            const allItemNames = [...new Set([...Object.keys(centralStock), ...Object.keys(transferred)])];
+            
+            let summaryHtml = '';
+            if (allItemNames.length > 0) {
+                summaryHtml = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Central Stock -->
+                    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100 shadow-sm">
+                        <h3 class="font-bold text-sm text-indigo-800 mb-3 flex items-center">
+                            <i class="fa-solid fa-building-columns mr-2 text-indigo-500"></i>ยอดสต็อกส่วนกลาง
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            ${Object.keys(centralStock).length === 0 ? '<span class="text-xs text-gray-500">ไม่มีสต็อกส่วนกลาง</span>' : ''}
+                            ${Object.entries(centralStock).map(([name, qty]) => {
+                                const icon = itemMap[name] ? itemMap[name].icon : 'fa-couch';
+                                return \`<div class="bg-white rounded px-2 py-1 flex items-center shadow-sm border border-indigo-50">
+                                    <i class="fa-solid \${icon} text-indigo-400 mr-1.5 text-[10px]"></i>
+                                    <span class="text-xs font-medium text-gray-600 mr-1.5">\${name}</span>
+                                    <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-1 rounded">\${qty}</span>
+                                </div>\`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Transferred -->
+                    <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 shadow-sm">
+                        <h3 class="font-bold text-sm text-emerald-800 mb-3 flex items-center">
+                            <i class="fa-solid fa-truck-fast mr-2 text-emerald-500"></i>ยอดที่เบิกออกจากส่วนกลาง
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            ${Object.keys(transferred).length === 0 ? '<span class="text-xs text-gray-500">ยังไม่มีการเบิกออก</span>' : ''}
+                            ${Object.entries(transferred).map(([name, qty]) => {
+                                const icon = itemMap[name] ? itemMap[name].icon : 'fa-couch';
+                                return \`<div class="bg-white rounded px-2 py-1 flex items-center shadow-sm border border-emerald-50">
+                                    <i class="fa-solid \${icon} text-emerald-400 mr-1.5 text-[10px]"></i>
+                                    <span class="text-xs font-medium text-gray-600 mr-1.5">\${name}</span>
+                                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-1 rounded">\${qty}</span>
+                                </div>\`;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            }
+            html += summaryHtml;
+
             const usedBuildings = new Set();
 
             // Render Zones
