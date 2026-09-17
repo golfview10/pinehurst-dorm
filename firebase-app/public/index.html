@@ -405,7 +405,7 @@
     <!-- Room Modal -->
     <div id="roomModal"
         class="fixed inset-0 bg-gray-900/60 z-40 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col fade-in-up relative">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col fade-in-up relative">
             <!-- Header -->
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0 z-20">
                 <div>
@@ -419,11 +419,11 @@
 
             <!-- Body -->
             <div id="roomForm" class="flex flex-col flex-1 overflow-hidden bg-white">
-                <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     <input type="hidden" id="editRowIndex">
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="col-span-1 sm:col-span-2">
+                        <div class="col-span-1">
                             <label class="label">เลขห้อง</label>
                             <input type="text" id="inp_roomNo"
                                 class="input-field font-bold text-lg text-center bg-gray-100 text-gray-600" disabled>
@@ -449,6 +449,13 @@
                             </select>
                         </div>
 
+                        <div class="col-span-1">
+                            <label class="label">วันที่เข้าอยู่ / วันที่ตัดหนี</label>
+                            <input type="date" id="inp_moveInDate" class="input-field"
+                                onchange="if(this.value && document.getElementById('inp_status').value === 'ห้องว่าง') { document.getElementById('inp_status').value = 'ห้องจอง'; if(typeof toggleBookingDuration === 'function') toggleBookingDuration(); }">
+                            <p class="text-xs text-gray-400 mt-1">*กรณีสถานะ "ห้องจอง" หรือ "ไม่ว่าง"</p>
+                        </div>
+
                         <div class="col-span-1 sm:col-span-2 hidden" id="bookingDurationContainer">
                             <label class="label">ระยะการจอง (วัน)</label>
                             <select id="inp_bookingDuration" class="input-field">
@@ -464,18 +471,11 @@
                         </div>
 
                         <div class="col-span-1 sm:col-span-2">
-                            <label class="label">วันที่เข้าอยู่ / วันที่ตัดหนี</label>
-                            <input type="date" id="inp_moveInDate" class="input-field"
-                                onchange="if(this.value && document.getElementById('inp_status').value === 'ห้องว่าง') { document.getElementById('inp_status').value = 'ห้องจอง'; if(typeof toggleBookingDuration === 'function') toggleBookingDuration(); }">
-                            <p class="text-xs text-gray-400 mt-1">*กรณีสถานะเป็น "ห้องจอง" หรือ "ไม่ว่าง"</p>
-                        </div>
-
-                        <div class="col-span-1 sm:col-span-2">
                             <label class="label">หมายเหตุ</label>
                             <input type="text" id="inp_remark" class="input-field" placeholder="ระบุหมายเหตุ (ถ้ามี)">
                         </div>
 
-                        <div class="col-span-1 sm:col-span-2 flex items-center space-x-2 pt-1">
+                        <div class="col-span-1 sm:col-span-2 flex items-center space-x-2">
                             <input type="checkbox" id="inp_isSampleRoom" onchange="toggleSampleRoomStatus(this.checked)"
                                 class="w-4 h-4 text-blue-600 rounded focus:ring-apple-blue border-gray-300">
                             <label for="inp_isSampleRoom"
