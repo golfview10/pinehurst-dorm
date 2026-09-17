@@ -309,6 +309,11 @@
 
                 document.getElementById('inp_roomNo').disabled = true;
                 // document.getElementById('inp_roomType').disabled = true; // Unlock Room Type Editing
+                
+                // Populate Furniture Section
+                if (typeof renderRoomModalFurniture === 'function') {
+                    renderRoomModalFurniture(item.roomNo);
+                }
             } else {
                 document.getElementById('modalTitle').innerText = "เพิ่มห้องใหม่";
                 document.getElementById('editRowIndex').value = "";
@@ -319,6 +324,11 @@
                 if(document.getElementById('inp_noBookingExpiry')) {
                     document.getElementById('inp_noBookingExpiry').checked = false;
                 }
+                
+                // Furniture
+                const furList = document.getElementById('roomModalFurnitureList');
+                if (furList) furList.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">โปรดบันทึกห้องก่อนเพื่อจัดการเฟอร์นิเจอร์</p>';
+
                 if (typeSelect.options.length > 0) typeSelect.selectedIndex = 0;
                 document.getElementById('inp_roomNo').disabled = false;
                 // document.getElementById('inp_roomType').disabled = false;
@@ -641,4 +651,56 @@
                 }
             });
         }
+
+        // ==========================================
+        // Room Modal Furniture Integration
+        // ==========================================
+        function renderRoomModalFurniture(roomNo) {
+            const container = document.getElementById('roomModalFurnitureList');
+            if (!container) return;
+
+            const bldgInfo = parseRoomInfo(roomNo);
+            const building = bldgInfo.building;
+            
+            const bldgDoc = STATE.roomFurniture.find(d => d.id === building);
+            const roomFur = (bldgDoc && bldgDoc.rooms && bldgDoc.rooms[roomNo]) ? bldgDoc.rooms[roomNo] : {};
+
+            if (Object.keys(roomFur).length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">ไม่มีเฟอร์นิเจอร์ในห้องนี้</p>';
+                return;
+            }
+
+            let html = '<div class="grid grid-cols-2 gap-2">';
+            for (const [furName, qty] of Object.entries(roomFur)) {
+                if (qty <= 0) continue;
+                
+                // Try to find icon from global items
+                const itemDef = STATE.furnitureItems.find(fi => fi.name === furName);
+                const icon = itemDef ? itemDef.icon : 'fa-couch';
+                
+                html += `
+                    <div class="flex items-center justify-between bg-white border border-gray-100 rounded p-2 shadow-sm text-xs">
+                        <div class="flex items-center">
+                            <i class="fa-solid ${icon} text-amber-500 mr-2 opacity-70"></i>
+                            <span class="text-gray-700 font-medium truncate max-w-[80px]" title="${furName}">${furName}</span>
+                        </div>
+                        <span class="font-bold text-gray-800 bg-gray-100 px-1.5 rounded">${qty}</span>
+                    </div>
+                `;
+            }
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        // Listen for furniture updates to refresh the modal if it's open
+        window.addEventListener('roomFurnitureUpdated', () => {
+            const modal = document.getElementById('roomModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                const roomNo = document.getElementById('inp_roomNo').value;
+                if (roomNo && !document.getElementById('inp_roomNo').disabled === false) {
+                    renderRoomModalFurniture(roomNo);
+                }
+            }
+        });
 
