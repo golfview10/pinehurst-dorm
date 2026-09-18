@@ -665,6 +665,136 @@
             }
         }
 
+        /**
+         * Modal เบิกเฟอร์จากส่วนกลางไปตึก
+         */
+        function openTransferFromCentralModal() {
+            const centralStock = STATE.furnitureStock.central || {};
+            const stockNames = Object.keys(centralStock);
+
+            if (stockNames.length === 0) {
+                showToast('ไม่มีสต๊อก', 'สต๊อกส่วนกลางว่างเปล่า', 'error');
+                return;
+            }
+
+            const itemMap = {};
+            STATE.furnitureItems.forEach(fi => { itemMap[fi.name] = fi; });
+
+            const allBuildings = Array.from(new Set(STATE.data.map(r => parseRoomInfo(r.roomNo).building))).sort();
+            const buildingOptions = allBuildings.map(b => `<option value="${b}">ตึก ${b}</option>`).join('');
+
+            let optionsHtml = stockNames.map(name => {
+                const stockQty = centralStock[name];
+                const icon = itemMap[name] ? itemMap[name].icon : 'fa-couch';
+                return `
+                    <label class="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-indigo-50 cursor-pointer transition">
+                        <input type="checkbox" name="fur_transfer_from_central" value="${name}" class="rounded text-indigo-500">
+                        <i class="fa-solid ${icon} text-gray-500"></i>
+                        <span class="flex-1 font-medium text-gray-700">${name}</span>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-xs text-gray-400">จำนวน:</span>
+                            <input type="number" min="1" max="${stockQty}" value="${stockQty}" 
+                                   class="w-14 text-center border border-gray-300 rounded px-1 py-0.5 text-sm" 
+                                   id="fur_xfer_from_qty_${name.replace(/\s/g, '_')}">
+                            <span class="text-xs text-gray-400">/ ${stockQty}</span>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            const modalHtml = `
+                <div id="furnitureActionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+                        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50 shrink-0">
+                            <h3 class="font-bold text-lg text-indigo-700"><i class="fa-solid fa-truck mr-2"></i>เบิกกลับไปตึก</h3>
+                            <button onclick="document.getElementById('furnitureActionModal').remove()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                        </div>
+                        <div class="p-6 space-y-4 overflow-y-auto flex-1">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">เลือกตึกปลายทาง <span class="text-red-500">*</span></label>
+                                <select id="fur_xfer_target_building" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">-- กรุณาเลือกตึก --</option>
+                                    ${buildingOptions}
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="block text-sm font-bold text-gray-700 mb-1">เลือกเฟอร์นิเจอร์</label>
+                                ${optionsHtml}
+                            </div>
+                        </div>
+                        <div class="p-4 border-t border-gray-100 shrink-0">
+                            <textarea id="fur_xfer_from_remark" placeholder="หมายเหตุ (ถ้ามี)" class="w-full border border-gray-300 rounded-lg p-2 text-sm mb-3" rows="2"></textarea>
+                            <button onclick="executeTransferFromCentral()" class="w-full bg-indigo-500 text-white py-3 rounded-xl font-bold hover:bg-indigo-600 transition">
+                                <i class="fa-solid fa-check mr-2"></i>ยืนยันเบิกไปตึก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        /**
+         * ดำเนินการเบิกเฟอร์จากส่วนกลางไปตึก
+         */
+        async function executeTransferFromCentral() {
+            const building = document.getElementById('fur_xfer_target_building').value;
+            if (!building) {
+                showToast('เลือกตึก', 'กรุณาเลือกตึกปลายทาง', 'error');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('input[name="fur_transfer_from_central"]:checked');
+            if (checkboxes.length === 0) {
+                showToast('เลือกเฟอร์', 'กรุณาเลือกเฟอร์ที่ต้องการเบิก', 'error');
+                return;
+            }
+
+            const remark = document.getElementById('fur_xfer_from_remark')?.value || '';
+
+            showLoading(true);
+            try {
+                for (const cb of checkboxes) {
+                    const name = cb.value;
+                    const qtyInput = document.getElementById(`fur_xfer_from_qty_${name.replace(/\s/g, '_')}`);
+                    const qty = parseInt(qtyInput?.value || '1');
+
+                    const res = await callApi('transferFromCentral', {
+                        project: STATE.currentProject,
+                        building,
+                        furnitureName: name,
+                        quantity: qty,
+                        userName: STATE.user.name,
+                        remark
+                    }, { silent: true });
+
+                    if (!res.success) {
+                        showToast('ผิดพลาด', res.message, 'error');
+                        showLoading(false);
+                        return;
+                    }
+                }
+
+                showLoading(false);
+                document.getElementById('furnitureActionModal')?.remove();
+                showToast('สำเร็จ', 'เบิกเฟอร์กลับไปตึกเรียบร้อย', 'success');
+
+                await fetchFurnitureData(STATE.currentProject);
+
+                if (STATE.currentView === 'furniture_detail') {
+                    renderFurnitureRoomDetail(building); // this won't be used since we don't know the specific building they were viewing, but it's fine
+                } else if (STATE.currentView === 'furniture_stock') {
+                    renderFurnitureStockPanel();
+                } else if (STATE.currentView === 'furniture_map') {
+                    renderFurnitureMap();
+                }
+            } catch (error) {
+                showLoading(false);
+                showToast('ผิดพลาด', error.message, 'error');
+            }
+        }
+
         // =====================================================
         // Stock Panel
         // =====================================================
@@ -698,9 +828,16 @@
             // Central Stock
             html += `
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-100 shadow-sm">
-                    <h3 class="font-bold text-lg text-indigo-800 mb-4 flex items-center">
-                        <i class="fa-solid fa-building-columns mr-2 text-indigo-500"></i>สต๊อกส่วนกลาง
-                    </h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-lg text-indigo-800 flex items-center">
+                            <i class="fa-solid fa-building-columns mr-2 text-indigo-500"></i>สต๊อกส่วนกลาง
+                        </h3>
+                        ${Object.keys(centralStock).length > 0 ? `
+                        <button onclick="openTransferFromCentralModal()" class="text-xs text-indigo-500 hover:text-indigo-700 transition font-bold bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm">
+                            <i class="fa-solid fa-truck mr-1"></i>เบิกกลับไปตึก
+                        </button>
+                        ` : ''}
+                    </div>
             `;
 
             const centralNames = Object.keys(centralStock);
