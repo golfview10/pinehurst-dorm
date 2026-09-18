@@ -58,14 +58,7 @@
                     transferred[name] = (transferred[name] || 0) + qty;
                 }
             }
-            // 2. Add room furniture (transferred to buildings and placed in rooms)
-            for (const rooms of Object.values(STATE.roomFurniture || {})) {
-                for (const items of Object.values(rooms)) {
-                    for (const [name, qty] of Object.entries(items)) {
-                        transferred[name] = (transferred[name] || 0) + qty;
-                    }
-                }
-            }
+
 
             const itemMap = {};
             STATE.furnitureItems.forEach(fi => { itemMap[fi.name] = fi; });
