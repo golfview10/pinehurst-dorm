@@ -1,17 +1,31 @@
-[debug] [2026-09-18T02:13:46.903Z] ----------------------------------------------------------------------
-[debug] [2026-09-18T02:13:46.906Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\acer\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
-[debug] [2026-09-18T02:13:46.907Z] CLI Version:   15.28.2
-[debug] [2026-09-18T02:13:46.907Z] Platform:      win32
-[debug] [2026-09-18T02:13:46.907Z] Node Version:  v24.12.0
-[debug] [2026-09-18T02:13:46.907Z] Detected Agent: antigravity
-[debug] [2026-09-18T02:13:46.907Z] Time:          Fri Sep 18 2026 09:13:46 GMT+0700 (เวลาอินโดจีน)
-[debug] [2026-09-18T02:13:46.907Z] ----------------------------------------------------------------------
+[debug] [2026-09-18T02:17:21.975Z] ----------------------------------------------------------------------
+[debug] [2026-09-18T02:17:21.980Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\acer\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-09-18T02:17:21.981Z] CLI Version:   15.28.2
+[debug] [2026-09-18T02:17:21.981Z] Platform:      win32
+[debug] [2026-09-18T02:17:21.981Z] Node Version:  v24.12.0
+[debug] [2026-09-18T02:17:21.982Z] Detected Agent: antigravity
+[debug] [2026-09-18T02:17:21.982Z] Time:          Fri Sep 18 2026 09:17:21 GMT+0700 (เวลาอินโดจีน)
+[debug] [2026-09-18T02:17:21.983Z] ----------------------------------------------------------------------
 [debug] 
-[debug] [2026-09-18T02:13:49.182Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-09-18T02:13:49.183Z] > authorizing via signed-in user (reportrepair.gv10@gmail.com)
-[debug] [2026-09-18T02:13:49.183Z] [iam] checking project smartcourt-gvsport for permissions ["firebase.projects.get","firebasehosting.sites.update"]
-[debug] [2026-09-18T02:13:49.199Z] Checked if tokens are valid: true, expires at: 1789700458292
-[debug] [2026-09-18T02:13:49.199Z] Checked if tokens are valid: true, expires at: 1789700458292
-[debug] [2026-09-18T02:13:49.200Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions [none]
-[debug] [2026-09-18T02:13:49.201Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions  x-goog-user-project=smartcourt-gvsport
-[debug] [2026-09-18T02:13:49.201Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-18T02:17:27.452Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-18T02:17:27.453Z] > authorizing via signed-in user (reportrepair.gv10@gmail.com)
+[debug] [2026-09-18T02:17:27.453Z] [iam] checking project smartcourt-gvsport for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-09-18T02:17:27.488Z] Checked if tokens are valid: true, expires at: 1789700458292
+[debug] [2026-09-18T02:17:27.489Z] Checked if tokens are valid: true, expires at: 1789700458292
+[debug] [2026-09-18T02:17:27.492Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions [none]
+[debug] [2026-09-18T02:17:27.492Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions  x-goog-user-project=smartcourt-gvsport
+[debug] [2026-09-18T02:17:27.492Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-18T02:17:28.839Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions 200
+[debug] [2026-09-18T02:17:28.840Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/smartcourt-gvsport:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-18T02:17:28.842Z] Checked if tokens are valid: true, expires at: 1789700458292
+[debug] [2026-09-18T02:17:28.842Z] Checked if tokens are valid: true, expires at: 1789700458292
+[debug] [2026-09-18T02:17:28.843Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/smartcourt-gvsport [none]
+[debug] [2026-09-18T02:17:29.587Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/smartcourt-gvsport 200
+[debug] [2026-09-18T02:17:29.587Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/smartcourt-gvsport {"projectId":"smartcourt-gvsport","projectNumber":"1098274282918","displayName":"SmartCourt-GVSport","name":"projects/smartcourt-gvsport","resources":{"hostingSite":"smartcourt-gvsport","realtimeDatabaseInstance":"smartcourt-gvsport-default-rtdb"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_e3c7eb6b-7a1e-4671-b54d-2da840e09d62"}
+[info] 
+[info] === Deploying to 'smartcourt-gvsport'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-09-18T02:17:29.601Z] Checked if tokens are valid: true, expires at: 1789700458292
+[debug] [2026-09-18T02:17:29.601Z] Checked if tokens are valid: true, expires at: 1789700458292
+[debug] [2026-09-18T02:17:29.601Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/smartcourt-gvsport/sites/pinehurst-dorm [none]

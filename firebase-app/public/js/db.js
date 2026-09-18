@@ -1199,7 +1199,7 @@ async function handleReturnFurnitureFirebase(project, roomNo, furnitureName, qua
 
             const newQty = currentQty - quantity;
             if (newQty <= 0) {
-                delete roomItems[furnitureName];
+                roomItems[furnitureName] = firebase.firestore.FieldValue.delete();
             } else {
                 roomItems[furnitureName] = newQty;
             }
@@ -1257,7 +1257,7 @@ async function handleAddFurnitureToRoomFirebase(project, roomNo, furnitureName, 
 
             // Deduct from stock
             stockItems[furnitureName] = stockQty - quantity;
-            if (stockItems[furnitureName] <= 0) delete stockItems[furnitureName];
+            if (stockItems[furnitureName] <= 0) stockItems[furnitureName] = firebase.firestore.FieldValue.delete();
 
             transaction.set(stockRef, {
                 project, type: 'building', building,
@@ -1310,7 +1310,7 @@ async function handleTransferToCentralFirebase(project, building, furnitureName,
 
             // Deduct from building stock
             bItems[furnitureName] = bQty - quantity;
-            if (bItems[furnitureName] <= 0) delete bItems[furnitureName];
+            if (bItems[furnitureName] <= 0) bItems[furnitureName] = firebase.firestore.FieldValue.delete();
 
             transaction.set(bRef, {
                 project, type: 'building', building,
@@ -1362,7 +1362,7 @@ async function handleTransferFromCentralFirebase(project, building, furnitureNam
 
             // Deduct from central
             cItems[furnitureName] = cQty - quantity;
-            if (cItems[furnitureName] <= 0) delete cItems[furnitureName];
+            if (cItems[furnitureName] <= 0) cItems[furnitureName] = firebase.firestore.FieldValue.delete();
 
             transaction.set(cRef, {
                 project, type: 'central', building: null,
