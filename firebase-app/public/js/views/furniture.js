@@ -203,7 +203,7 @@
             }
 
             return `
-                <div onclick="renderFurnitureRoomDetail('${bldg}')" 
+                <div onclick="updateActiveNav(1); renderRoomList('${bldg}')" 
                      class="min-w-[160px] max-w-[200px] bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer transition-all duration-200 flex-shrink-0 overflow-hidden">
                     <div class="bg-gray-800 text-white text-center py-2 font-bold text-lg tracking-wide">${bldg}</div>
                     <div class="text-center text-[11px] text-gray-500 py-1 border-b border-gray-100">ทั้งหมด ${totalRooms} ห้อง</div>
