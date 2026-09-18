@@ -552,27 +552,26 @@ window.SafeStorage = {
         }
 
         // --- Furniture Data Fetching ---
-        function fetchFurnitureData(project) {
-            // Fetch furniture items (master list)
-            callApi('getFurnitureItems', { project }, { silent: true }).then(res => {
+        async function fetchFurnitureData(project) {
+            const p1 = callApi('getFurnitureItems', { project }, { silent: true }).then(res => {
                 if (res && res.success) {
                     STATE.furnitureItems = res.data || [];
                 }
             }).catch(err => console.error('[fetchFurnitureItems] Error:', err));
 
-            // Fetch room furniture (real-time listener)
-            callApi('getRoomFurniture', { project }, { silent: true }).then(res => {
+            const p2 = callApi('getRoomFurniture', { project }, { silent: true }).then(res => {
                 if (res && res.success) {
                     STATE.roomFurniture = res.data || {};
                 }
             }).catch(err => console.error('[fetchRoomFurniture] Error:', err));
 
-            // Fetch furniture stock
-            callApi('getFurnitureStock', { project }, { silent: true }).then(res => {
+            const p3 = callApi('getFurnitureStock', { project }, { silent: true }).then(res => {
                 if (res && res.success) {
                     STATE.furnitureStock = res.data || { buildings: {}, central: {} };
                 }
             }).catch(err => console.error('[fetchFurnitureStock] Error:', err));
+            
+            await Promise.all([p1, p2, p3]);
         }
 
         // --- Notification System ---

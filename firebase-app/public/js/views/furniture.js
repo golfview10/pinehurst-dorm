@@ -422,13 +422,17 @@
                 document.getElementById('furnitureActionModal')?.remove();
                 showToast('สำเร็จ', 'คืนเฟอร์นิเจอร์เรียบร้อย', 'success');
 
-                // Refresh stock
-                fetchFurnitureData(STATE.currentProject);
+                // Refresh stock and wait for it
+                await fetchFurnitureData(STATE.currentProject);
 
                 // Re-render current view
                 const info = parseRoomInfo(roomNo);
                 if (STATE.currentView === 'furniture_detail') {
                     renderFurnitureRoomDetail(info.building);
+                } else if (STATE.currentView === 'furniture_stock') {
+                    renderFurnitureStockPanel();
+                } else if (STATE.currentView === 'furniture_map') {
+                    renderFurnitureMap();
                 }
             } catch (error) {
                 showLoading(false);
@@ -534,11 +538,15 @@
                 document.getElementById('furnitureActionModal')?.remove();
                 showToast('สำเร็จ', 'เพิ่มเฟอร์นิเจอร์เรียบร้อย', 'success');
 
-                fetchFurnitureData(STATE.currentProject);
+                await fetchFurnitureData(STATE.currentProject);
 
                 const info = parseRoomInfo(roomNo);
                 if (STATE.currentView === 'furniture_detail') {
                     renderFurnitureRoomDetail(info.building);
+                } else if (STATE.currentView === 'furniture_stock') {
+                    renderFurnitureStockPanel();
+                } else if (STATE.currentView === 'furniture_map') {
+                    renderFurnitureMap();
                 }
             } catch (error) {
                 showLoading(false);
@@ -642,10 +650,14 @@
                 document.getElementById('furnitureActionModal')?.remove();
                 showToast('สำเร็จ', 'เบิกเฟอร์ไปส่วนกลางเรียบร้อย', 'success');
 
-                fetchFurnitureData(STATE.currentProject);
+                await fetchFurnitureData(STATE.currentProject);
 
                 if (STATE.currentView === 'furniture_detail') {
                     renderFurnitureRoomDetail(building);
+                } else if (STATE.currentView === 'furniture_stock') {
+                    renderFurnitureStockPanel();
+                } else if (STATE.currentView === 'furniture_map') {
+                    renderFurnitureMap();
                 }
             } catch (error) {
                 showLoading(false);
