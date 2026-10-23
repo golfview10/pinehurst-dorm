@@ -90,21 +90,39 @@
                     { id: 'repair', label: 'ปรับปรุง', color: 'gray', filterFn: r => r.status === 'ปรับปรุง' || r.status === 'รอซ่อม', icon: 'fa-screwdriver-wrench' }
                 ];
             }
+
+            // Calculate project total rent for occupied rooms (independent of Room Type price)
+            const occupiedRooms = STATE.data.filter(r => r.status === 'ไม่ว่าง');
+            const projectTotalRent = occupiedRooms.reduce((sum, r) => sum + (parseFloat(r.roomPrice) || 0), 0);
+
+            // Add total_rent card to CARD_DEFS
+            CARD_DEFS.push({
+                id: 'total_rent',
+                label: 'ยอดรวมค่าห้อง',
+                color: 'emerald',
+                isHex: false,
+                icon: 'fa-coins',
+                isRevenue: true,
+                customValue: `฿${projectTotalRent.toLocaleString()}`,
+                subLabel: `จาก ${occupiedRooms.length} ห้องไม่ว่าง`,
+                filterFn: r => r.status === 'ไม่ว่าง'
+            });
             
             // Sort CARD_DEFS
             const orderMap = {
                 'ไม่ว่าง': 1,
                 'occupied': 1,
-                'ห้องว่าง': 2,
-                'vacant': 2,
-                'ห้องจอง': 3,
-                'reserved': 3,
-                'ห้องตัดหนี': 4,
-                'writeoff': 4,
-                'ห้องออกคืนประกัน': 5,
-                'refund': 5,
-                'ปรับปรุง': 6,
-                'repair': 6
+                'total_rent': 2,
+                'ห้องว่าง': 3,
+                'vacant': 3,
+                'ห้องจอง': 4,
+                'reserved': 4,
+                'ห้องตัดหนี': 5,
+                'writeoff': 5,
+                'ห้องออกคืนประกัน': 6,
+                'refund': 6,
+                'ปรับปรุง': 7,
+                'repair': 7
             };
             
             CARD_DEFS.sort((a, b) => {
@@ -158,10 +176,10 @@
             const expiredBooking = reservedAll.filter(r => isBookingExpired(r)).length;
 
             function createDashCard(config) {
-                const { id, color, icon, label, info, expiredCount, isHex, isSummary } = config;
+                const { id, color, icon, label, info, expiredCount, isHex, isSummary, isRevenue, customValue, subLabel } = config;
                 const s = getCardStyles(color, isHex);
                 return `
-                        <div onclick="renderRoomListByStatus('${id.replace(/'/g, "\\'")}')" class="bg-white p-3 md:p-5 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border ${isSummary ? 'border-teal-200 ring-1 ring-teal-400/20' : 'border-gray-100'} flex flex-col justify-between cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${s.hoverBorder} hover:-translate-y-1 transition-all duration-300 group min-h-[120px] md:min-h-[160px] relative overflow-hidden">
+                        <div onclick="renderRoomListByStatus('${id.replace(/'/g, "\\'")}')" class="bg-white p-3 md:p-5 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border ${isSummary ? 'border-teal-200 ring-1 ring-teal-400/20' : (isRevenue ? 'border-emerald-200 ring-1 ring-emerald-400/20' : 'border-gray-100')} flex flex-col justify-between cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${s.hoverBorder} hover:-translate-y-1 transition-all duration-300 group min-h-[120px] md:min-h-[160px] relative overflow-hidden">
                             <!-- Subtle Glow -->
                             <div class="absolute -right-12 -top-12 w-40 h-40 ${s.glowClass} rounded-full blur-2xl transition-opacity duration-500 pointer-events-none" ${s.glowStyle}></div>
                             
@@ -174,6 +192,7 @@
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <span class="text-gray-600 text-sm font-bold tracking-wide">${label}</span>
                                             ${isSummary ? `<span class="text-[9px] font-extrabold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded-full">สรุปยอด</span>` : ''}
+                                            ${isRevenue ? `<span class="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">ยอดเงิน</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -182,7 +201,14 @@
                                 </div>
                             </div>
 
-                            ${info.mode === 'single' ? `
+                            ${isRevenue ? `
+                                <div class="flex flex-col justify-center flex-1 z-10 relative pb-2">
+                                    <div class="flex flex-col">
+                                        <span class="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight leading-tight">${customValue}</span>
+                                        ${subLabel ? `<span class="text-[11px] font-medium text-gray-400 mt-1">${subLabel}</span>` : ''}
+                                    </div>
+                                </div>
+                            ` : (info && info.mode === 'single' ? `
                                 <div class="flex flex-col justify-center flex-1 z-10 relative pb-2">
                                     <div class="flex items-baseline gap-2">
                                         <span class="text-5xl font-extrabold text-gray-800 tracking-tight">${info.total}</span>
@@ -191,22 +217,22 @@
                                 </div>
                             ` : `
                                 <div class="flex-1 overflow-y-auto pr-1 space-y-1.5 scrollbar-hide mb-3 max-h-[120px] z-10 relative mt-1">
-                                    ${info.groups.map(g => `
+                                    ${info && info.groups ? info.groups.map(g => `
                                         <div onclick="event.stopPropagation(); renderRoomListByStatus('${id.replace(/'/g, "\\'")}', { groupName: '${g.name.replace(/'/g, "\\'")}' })" 
                                              class="flex items-center justify-between cursor-pointer bg-gray-50/50 ${s.itemHover} px-3 py-2 rounded-xl border border-transparent ${s.hoverBorder} transition-colors group/item">
                                             <span class="text-xs font-medium text-gray-500 group-hover/item:text-gray-700 transition-colors">${g.name}</span>
                                             <span class="text-sm font-bold text-gray-700 ${s.textClass} transition-colors leading-none" ${s.textStyle}>${g.count}</span>
                                         </div>
-                                    `).join('')}
+                                    `).join('') : ''}
                                 </div>
                                 <div class="shrink-0 pt-3 border-t border-gray-50 flex items-center justify-between z-10 relative">
                                     <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">รวมทั้งหมด</span>
                                     <div class="flex items-baseline gap-1.5">
-                                        <span class="text-2xl font-extrabold text-gray-800 leading-none">${info.total}</span>
+                                        <span class="text-2xl font-extrabold text-gray-800 leading-none">${info ? info.total : 0}</span>
                                         ${expiredCount > 0 ? `<span class="text-[9px] font-bold text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded-full">${expiredCount} หลุด</span>` : ''}
                                     </div>
                                 </div>
-                            `}
+                            `)}
                         </div>
                 `;
             }
@@ -326,11 +352,11 @@
                     </div>
                     
                     <!-- Main Status Cards -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-8">
                         ${CARD_DEFS.map(def => {
-                            const info = getCardCountGroups(def.id, def.filterFn);
+                            const info = def.isRevenue ? null : getCardCountGroups(def.id, def.filterFn);
                             let expired = 0;
-                            if (def.label.includes('จอง') || def.id === 'reserved') {
+                            if (def.label && def.label.includes('จอง') || def.id === 'reserved') {
                                 expired = expiredBooking;
                             }
                             return createDashCard({ 
@@ -340,7 +366,10 @@
                                 label: def.label, 
                                 info: info, 
                                 expiredCount: expired,
-                                isHex: def.isHex
+                                isHex: def.isHex,
+                                isRevenue: def.isRevenue,
+                                customValue: def.customValue,
+                                subLabel: def.subLabel
                             });
                         }).join('')}
                     </div>
@@ -703,6 +732,11 @@
             } else if (statusKey === 'occupied' || statusKey === 'ไม่ว่าง') {
                 title = 'รายการห้องมีลูกค้า';
                 filterFn = r => r.status === 'ไม่ว่าง';
+            } else if (statusKey === 'total_rent') {
+                title = 'รายการห้องไม่ว่าง (คิดยอดค่าห้อง)';
+                themeColor = 'emerald';
+                icon = 'fa-coins';
+                filterFn = r => r.status === 'ไม่ว่าง';
             } else if (statusKey === 'all') {
                 title = 'รายการห้องทั้งหมด';
                 themeColor = 'blue';
@@ -903,7 +937,7 @@
             else if (statusKey === 'repair' || statusKey === 'ปรับปรุง' || statusKey === 'รอซ่อม' || statusKey === 'ชำรุด') filterFn = r => r.status === 'ปรับปรุง' || r.status === 'รอซ่อม' || r.status === 'ชำรุด';
             else if (statusKey === 'refund' || statusKey === 'ห้องออกคืนประกัน' || statusKey === 'คืนประกัน') filterFn = r => r.status === 'ห้องออกคืนประกัน' || r.status === 'คืนประกัน';
             else if (statusKey === 'writeoff' || statusKey === 'ห้องตัดหนี' || statusKey === 'ตัดหนี') filterFn = r => r.status === 'ห้องตัดหนี' || r.status === 'ตัดหนี';
-            else if (statusKey === 'occupied' || statusKey === 'ไม่ว่าง') filterFn = r => r.status === 'ไม่ว่าง';
+            else if (statusKey === 'occupied' || statusKey === 'ไม่ว่าง' || statusKey === 'total_rent') filterFn = r => r.status === 'ไม่ว่าง';
             else if (statusKey === 'all') filterFn = r => true;
 
             let filtered = STATE.data.filter(filterFn);
@@ -1061,7 +1095,7 @@
             else if (statusKey === 'repair' || statusKey === 'ปรับปรุง' || statusKey === 'รอซ่อม' || statusKey === 'ชำรุด') { filterFn = r => r.status === 'ปรับปรุง' || r.status === 'รอซ่อม' || r.status === 'ชำรุด'; statusFilterType = 'ปรับปรุง'; }
             else if (statusKey === 'refund' || statusKey === 'ห้องออกคืนประกัน' || statusKey === 'คืนประกัน') { filterFn = r => r.status === 'ห้องออกคืนประกัน' || r.status === 'คืนประกัน'; statusFilterType = 'ห้องออกคืนประกัน'; }
             else if (statusKey === 'writeoff' || statusKey === 'ห้องตัดหนี' || statusKey === 'ตัดหนี') { filterFn = r => r.status === 'ห้องตัดหนี' || r.status === 'ตัดหนี'; statusFilterType = 'ห้องตัดหนี'; }
-            else if (statusKey === 'occupied' || statusKey === 'ไม่ว่าง') { filterFn = r => r.status === 'ไม่ว่าง'; statusFilterType = 'ไม่ว่าง'; }
+            else if (statusKey === 'occupied' || statusKey === 'ไม่ว่าง' || statusKey === 'total_rent') { filterFn = r => r.status === 'ไม่ว่าง'; statusFilterType = 'ไม่ว่าง'; }
 
             let filtered = STATE.data.filter(filterFn);
 
@@ -1251,6 +1285,7 @@
                                 <div class="inline-flex items-center bg-${cardBadgeColor}-100 text-${cardBadgeColor}-700 text-[10px] px-2 py-1 rounded-full font-bold">
                                     <div class="w-1.5 h-1.5 bg-${cardBadgeColor}-500 rounded-full mr-1.5"></div> ${expired ? 'หลุดจอง' : (statusKey === 'repair' ? 'ชำรุด' : r.status)}
                                 </div>
+                                ${r.roomPrice ? `<div class="mt-1 text-xs font-bold text-emerald-600 flex items-center"><i class="fa-solid fa-baht-sign mr-1"></i>฿${(parseFloat(r.roomPrice) || 0).toLocaleString()} / ด.</div>` : ''}
                                 <div class="mt-2 text-[10px] text-gray-400 truncate"><i class="fa-solid fa-tag mr-1"></i> ${r.roomType || '-'}</div>
                             </div>
                         </div>

@@ -89,6 +89,11 @@
 
         function generateCompactBuildingCard(bldg) {
             const rooms = STATE.data.filter(r => parseRoomInfo(r.roomNo).building === bldg);
+
+            // Calculate total roomPrice for occupied rooms in this building
+            const bldgTotalRent = rooms
+                .filter(r => r.status === 'ไม่ว่าง')
+                .reduce((sum, r) => sum + (parseFloat(r.roomPrice) || 0), 0);
             
             // Build dynamic statuses
             const statusesToRender = [];
@@ -161,7 +166,10 @@
                     <div class="${headerClass}" ${headerStyle}>${bldg}</div>
                     
                     <div class="flex-1 flex flex-col justify-center items-center bg-gray-50 p-2">
-                        <div class="text-[10px] text-gray-400 mb-1">ทั้งหมด ${rooms.length} ห้อง</div>
+                        <div class="text-[10px] text-gray-400 mb-0.5">ทั้งหมด ${rooms.length} ห้อง</div>
+                        <div class="text-[11px] font-bold text-emerald-600 mb-1 flex items-center justify-center gap-0.5" title="ยอดรวมค่าห้อง (สถานะไม่ว่าง)">
+                            <span>ยอดรวม ฿${bldgTotalRent.toLocaleString()}</span>
+                        </div>
                         ${statusesHtml}
                     </div>
                 </div>`;

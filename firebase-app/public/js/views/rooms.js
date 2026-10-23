@@ -281,9 +281,21 @@
             } else {
                 statusNode.disabled = false;
             }
+            if (typeof window.toggleRoomPriceField === 'function') window.toggleRoomPriceField();
         }
 
         // --- Modal & Save ---
+        window.toggleRoomPriceField = function() {
+            const status = document.getElementById('inp_status') ? document.getElementById('inp_status').value : '';
+            const container = document.getElementById('roomPriceContainer');
+            if (!container) return;
+            if (status === 'ไม่ว่าง') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        };
+
         window.toggleBookingDuration = function() {
             const status = document.getElementById('inp_status').value;
             const container = document.getElementById('bookingDurationContainer');
@@ -387,6 +399,12 @@
                 if (typeof renderRoomModalFurniture === 'function') {
                     renderRoomModalFurniture(item.roomNo);
                 }
+
+                // Populate roomPrice (Format 1: Keep and pre-fill previous price)
+                const priceInp = document.getElementById('inp_roomPrice');
+                if (priceInp) {
+                    priceInp.value = (item.roomPrice !== undefined && item.roomPrice !== null && item.roomPrice !== '') ? item.roomPrice : '';
+                }
             } else {
                 document.getElementById('modalTitle').innerText = "เพิ่มห้องใหม่";
                 document.getElementById('editRowIndex').value = "";
@@ -397,6 +415,8 @@
                 if(document.getElementById('inp_noBookingExpiry')) {
                     document.getElementById('inp_noBookingExpiry').checked = false;
                 }
+                const priceInp = document.getElementById('inp_roomPrice');
+                if (priceInp) priceInp.value = '';
                 
                 // Furniture
                 const furList = document.getElementById('roomModalFurnitureList');
@@ -426,6 +446,7 @@
             }
 
             window.toggleBookingDuration();
+            window.toggleRoomPriceField();
             document.getElementById('roomModal').classList.remove('hidden');
         }
 
@@ -490,6 +511,16 @@
                 }
             }
 
+            // Handle roomPrice (Format 1: Keep previous price if changing to other status, update if 'ไม่ว่าง')
+            const existingItem = rowIndex ? STATE.data.find(r => r.rowIndex == rowIndex) : null;
+            const rawRoomPrice = document.getElementById('inp_roomPrice') ? document.getElementById('inp_roomPrice').value.trim() : '';
+            let roomPrice = 0;
+            if (status === 'ไม่ว่าง') {
+                roomPrice = (rawRoomPrice !== '' && !isNaN(rawRoomPrice)) ? parseFloat(rawRoomPrice) : ((existingItem && existingItem.roomPrice) || 0);
+            } else {
+                roomPrice = (existingItem && existingItem.roomPrice !== undefined) ? existingItem.roomPrice : ((rawRoomPrice !== '' && !isNaN(rawRoomPrice)) ? parseFloat(rawRoomPrice) : 0);
+            }
+
             const formPayload = {
                 roomNo: roomNo,
                 roomType: document.getElementById('inp_roomType').value.trim(),
@@ -498,7 +529,8 @@
                 remark: document.getElementById('inp_remark').value.trim(),
                 isSampleRoom: isSampleRoom,
                 bookingDuration: bookingDuration,
-                noBookingExpiry: noBookingExpiry
+                noBookingExpiry: noBookingExpiry,
+                roomPrice: roomPrice
             };
 
             const serverPayload = {
@@ -514,6 +546,7 @@
                 if (idx !== -1) {
                     STATE.data[idx] = { ...STATE.data[idx], ...formPayload };
                     if (STATE.currentView === 'dashboard') renderDashboard();
+                    else if (STATE.currentView === 'visual_map') renderVisualMap();
                     else if (STATE.currentView === 'room_list') renderRoomList(STATE.currentBuildingFilter, STATE.currentFloor);
                     else if (STATE.currentView === 'available_view') {
                         // Check if we need to remove it from view (if status changed to not vacant)

@@ -514,6 +514,9 @@ async function handleSaveRoomDataFirebase(project, rowIndex, data, userName) {
                 }
             }
 
+            const existingRoomPrice = (existingRoomIndex >= 0 && rooms[existingRoomIndex].roomPrice !== undefined) ? rooms[existingRoomIndex].roomPrice : 0;
+            const finalRoomPrice = data.roomPrice !== undefined ? (parseFloat(data.roomPrice) || 0) : existingRoomPrice;
+
             const roomData = {
                 roomNo: data.roomNo,
                 status: data.status,
@@ -524,6 +527,7 @@ async function handleSaveRoomDataFirebase(project, rowIndex, data, userName) {
                 bookingDate: bookingDate,
                 bookingDuration: data.bookingDuration || '',
                 noBookingExpiry: data.noBookingExpiry || false,
+                roomPrice: finalRoomPrice,
                 oldDocId: rowIndex || null // preserve old reference if any
             };
 

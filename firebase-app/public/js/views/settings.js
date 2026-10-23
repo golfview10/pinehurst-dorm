@@ -1757,7 +1757,18 @@
                 });
             });
 
-            // C. 'all' card
+            // C. Total Rent Revenue Card
+            cards.push({
+                id: 'total_rent',
+                label: 'ยอดรวมค่าห้อง',
+                color: 'emerald',
+                isHex: false,
+                icon: 'fa-coins',
+                type: 'revenue',
+                badge: 'ยอดเงิน'
+            });
+
+            // D. 'all' card
             cards.push({
                 id: 'all',
                 label: 'ทั้งหมด',
@@ -1777,7 +1788,7 @@
                     return 0;
                 });
             } else {
-                const defaultOrder = ['ไม่ว่าง', 'occupied', 'ห้องว่าง', 'vacant', 'ห้องจอง', 'reserved', 'ห้องตัดหนี', 'writeoff', 'ห้องออกคืนประกัน', 'refund', 'ปรับปรุง', 'repair'];
+                const defaultOrder = ['ไม่ว่าง', 'occupied', 'total_rent', 'ห้องว่าง', 'vacant', 'ห้องจอง', 'reserved', 'ห้องตัดหนี', 'writeoff', 'ห้องออกคืนประกัน', 'refund', 'ปรับปรุง', 'repair'];
                 cards.sort((a, b) => {
                     if (a.id === 'all') return 1;
                     if (b.id === 'all') return -1;
@@ -1890,7 +1901,7 @@
                             <!-- Card Label & Type Badge -->
                             <div class="flex items-center gap-2">
                                 <span class="font-bold text-gray-800 text-base">${c.label}</span>
-                                ${c.badge ? `<span class="text-[9px] font-extrabold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.2 rounded-full">${c.badge}</span>` : ''}
+                                ${c.badge ? `<span class="text-[9px] font-extrabold ${c.type === 'revenue' ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-teal-700 bg-teal-50 border border-teal-200'} px-1.5 py-0.5 rounded-full">${c.badge}</span>` : ''}
                                 ${c.type === 'all' ? `<span class="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.2 rounded-full">การ์ดรวมทั้งหมด</span>` : ''}
                             </div>
                         </div>
@@ -1978,7 +1989,7 @@
         }
 
         function _resetCardOrderDefault() {
-            const defaultOrder = ['ไม่ว่าง', 'occupied', 'ห้องว่าง', 'vacant', 'ห้องจอง', 'reserved', 'ห้องตัดหนี', 'writeoff', 'ห้องออกคืนประกัน', 'refund', 'ปรับปรุง', 'repair'];
+            const defaultOrder = ['ไม่ว่าง', 'occupied', 'total_rent', 'ห้องว่าง', 'vacant', 'ห้องจอง', 'reserved', 'ห้องตัดหนี', 'writeoff', 'ห้องออกคืนประกัน', 'refund', 'ปรับปรุง', 'repair'];
             const cards = window._cardOrderState || [];
             cards.sort((a, b) => {
                 if (a.id === 'all') return 1;

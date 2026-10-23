@@ -477,7 +477,7 @@
 
                         <div class="col-span-1">
                             <label class="label">สถานะ <span class="text-red-500">*</span></label>
-                            <select id="inp_status" class="input-field font-medium" onchange="if(typeof toggleBookingDuration === 'function') toggleBookingDuration();">
+                            <select id="inp_status" class="input-field font-medium" onchange="if(typeof toggleBookingDuration === 'function') toggleBookingDuration(); if(typeof toggleRoomPriceField === 'function') toggleRoomPriceField();">
                                 <option value="ห้องว่าง">ห้องว่าง</option>
                                 <option value="ห้องจอง">ห้องจอง</option>
                                 <option value="ไม่ว่าง">ไม่ว่าง</option>
@@ -490,8 +490,25 @@
                         <div class="col-span-1">
                             <label class="label">วันที่เข้าอยู่ / วันที่ตัดหนี</label>
                             <input type="date" id="inp_moveInDate" class="input-field"
-                                onchange="if(this.value && document.getElementById('inp_status').value === 'ห้องว่าง') { document.getElementById('inp_status').value = 'ห้องจอง'; if(typeof toggleBookingDuration === 'function') toggleBookingDuration(); }">
+                                onchange="if(this.value && document.getElementById('inp_status').value === 'ห้องว่าง') { document.getElementById('inp_status').value = 'ห้องจอง'; if(typeof toggleBookingDuration === 'function') toggleBookingDuration(); if(typeof toggleRoomPriceField === 'function') toggleRoomPriceField(); }">
                             <p class="text-xs text-gray-400 mt-1">*กรณีสถานะ "ห้องจอง" หรือ "ไม่ว่าง"</p>
+                        </div>
+
+                        <!-- Room Price (Only visible when status is 'ไม่ว่าง') -->
+                        <div class="col-span-1 sm:col-span-2 hidden" id="roomPriceContainer">
+                            <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3.5">
+                                <label class="label mb-1.5 flex items-center justify-between">
+                                    <span class="text-emerald-950 font-bold flex items-center text-sm">
+                                        <i class="fa-solid fa-baht-sign text-emerald-600 mr-2 text-base"></i>ราคาห้อง (บาท) <span class="text-red-500 ml-1">*</span>
+                                    </span>
+                                    <span class="text-[11px] font-medium text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">คิดค่าห้องเฉพาะสถานะไม่ว่าง</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="inp_roomPrice" class="input-field pl-9 pr-14 font-extrabold text-lg text-emerald-800 bg-white border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500" placeholder="0" min="0" step="any">
+                                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600 font-extrabold text-base">฿</span>
+                                    <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">บาท/เดือน</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="col-span-1 sm:col-span-2 hidden" id="bookingDurationContainer">
@@ -723,18 +740,18 @@
     <datalist id="list_addr"></datalist>
 
     <!-- Firebase Data Layer (must load before inline scripts) -->
-    <script src="js/firebase-config.js?v=49"></script>
-    <script src="js/db.js?v=49"></script>
+    <script src="js/firebase-config.js?v=50"></script>
+    <script src="js/db.js?v=50"></script>
 
     <!-- Modular Views -->
-    <script src="js/utils.js?v=49"></script>
-    <script src="js/app.js?v=49"></script>
-    <script src="js/views/dashboard.js?v=49"></script>
-    <script src="js/views/map.js?v=49"></script>
-    <script src="js/views/furniture.js?v=49"></script>
-    <script src="js/views/rooms.js?v=49"></script>
-    <script src="js/views/settings.js?v=49"></script>
-    <script src="js/views/messaging.js?v=49"></script>
+    <script src="js/utils.js?v=50"></script>
+    <script src="js/app.js?v=50"></script>
+    <script src="js/views/dashboard.js?v=50"></script>
+    <script src="js/views/map.js?v=50"></script>
+    <script src="js/views/furniture.js?v=50"></script>
+    <script src="js/views/rooms.js?v=50"></script>
+    <script src="js/views/settings.js?v=50"></script>
+    <script src="js/views/messaging.js?v=50"></script>
 
     <!-- Floating Bottom-Right Chat Notification Container -->
     <div id="bottomRightChatNotifContainer" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none sm:max-w-md"></div>
@@ -748,6 +765,7 @@
         <div class="bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 text-green-700 bg-green-100"></div>
         <div class="bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white text-teal-700 bg-teal-100 bg-teal-500 border-teal-200"></div>
         <div class="bg-amber-50 text-amber-600 group-hover:bg-amber-600 border-amber-300 border-amber-400 bg-amber-100 text-amber-700 bg-rose-500 bg-amber-500 text-red-700 bg-red-100"></div>
+        <div class="xl:grid-cols-8 lg:grid-cols-7 lg:grid-cols-4 md:grid-cols-4 grid-cols-2"></div>
     </div>
 </body>
 </html>
