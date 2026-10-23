@@ -60,7 +60,7 @@
                     html += `
                         <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                             <h3 class="text-base font-bold text-gray-700 mb-3 border-l-4 border-pink-400 pl-3 flex items-center bg-pink-50 py-2 rounded-r-lg"><i class="fa-solid fa-map-pin mr-2 text-pink-400"></i>${zone.title} <span class="text-xs text-gray-400 font-normal ml-2">(${zoneBuildings.length} ตึก)</span></h3>
-                            <div class="flex overflow-x-auto space-x-3 pb-2 scrollbar-hide">
+                            <div class="flex flex-wrap gap-3">
                                 ${zoneBuildings.map(bldg => generateCompactBuildingCard(bldg)).join('')}
                             </div>
                         </div>
@@ -75,7 +75,7 @@
                 html += `
                     <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                         <h3 class="text-base font-bold text-gray-700 mb-3 border-l-4 border-pink-400 pl-3 flex items-center bg-pink-50 py-2 rounded-r-lg"><i class="fa-solid fa-map-pin mr-2 text-pink-400"></i>อื่นๆ</h3>
-                        <div class="flex overflow-x-auto space-x-3 pb-2 scrollbar-hide">
+                        <div class="flex flex-wrap gap-3">
                             ${otherBuildings.map(bldg => generateCompactBuildingCard(bldg)).join('')}
                         </div>
                     </div>
@@ -157,7 +157,7 @@
             statusesHtml += `</div>`;
 
             return `
-                <div onclick="filterTableByBuilding('${bldg}')" class="flex-shrink-0 w-40 bg-white rounded-xl shadow-sm cursor-pointer hover:shadow-md transition border border-gray-200 overflow-hidden text-center group transform hover:-translate-y-1 flex flex-col">
+                <div onclick="filterTableByBuilding('${bldg}')" class="w-40 bg-white rounded-xl shadow-sm cursor-pointer hover:shadow-md transition border border-gray-200 overflow-hidden text-center group transform hover:-translate-y-1 flex flex-col">
                     <div class="${headerClass}" ${headerStyle}>${bldg}</div>
                     
                     <div class="flex-1 flex flex-col justify-center items-center bg-gray-50 p-2">

@@ -1,0 +1,19 @@
+{
+  "name": "firebase-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "fix.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "serve": "firebase serve --only hosting",
+    "build:css": "npx tailwindcss -i ./public/css/input.css -o ./public/css/tailwind.css --minify",
+    "watch:css": "npx tailwindcss -i ./public/css/input.css -o ./public/css/tailwind.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}

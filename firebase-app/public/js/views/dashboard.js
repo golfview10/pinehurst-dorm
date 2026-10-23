@@ -161,13 +161,13 @@
                 const { id, color, icon, label, info, expiredCount, isHex, isSummary } = config;
                 const s = getCardStyles(color, isHex);
                 return `
-                        <div onclick="renderRoomListByStatus('${id.replace(/'/g, "\\'")}')" class="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border ${isSummary ? 'border-teal-200 ring-1 ring-teal-400/20' : 'border-gray-100'} flex flex-col justify-between cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${s.hoverBorder} hover:-translate-y-1 transition-all duration-300 group min-h-[160px] relative overflow-hidden">
+                        <div onclick="renderRoomListByStatus('${id.replace(/'/g, "\\'")}')" class="bg-white p-3 md:p-5 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border ${isSummary ? 'border-teal-200 ring-1 ring-teal-400/20' : 'border-gray-100'} flex flex-col justify-between cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] ${s.hoverBorder} hover:-translate-y-1 transition-all duration-300 group min-h-[120px] md:min-h-[160px] relative overflow-hidden">
                             <!-- Subtle Glow -->
                             <div class="absolute -right-12 -top-12 w-40 h-40 ${s.glowClass} rounded-full blur-2xl transition-opacity duration-500 pointer-events-none" ${s.glowStyle}></div>
                             
-                            <div class="flex justify-between items-start mb-4 shrink-0 z-10 relative">
+                            <div class="flex justify-between items-start mb-2 md:mb-4 shrink-0 z-10 relative">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl ${s.iconBoxClass} flex items-center justify-center group-hover:scale-105 transition-transform duration-300" ${s.iconBoxStyle}>
+                                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl ${s.iconBoxClass} flex items-center justify-center group-hover:scale-105 transition-transform duration-300" ${s.iconBoxStyle}>
                                         <i class="fa-solid ${icon} text-lg"></i>
                                     </div>
                                     <div>
@@ -248,7 +248,7 @@
                             
                             <div class="flex justify-between items-start mb-4 z-10 relative">
                                 <div class="flex items-center gap-3 w-full">
-                                    <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white shadow-emerald-500/30 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+                                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-emerald-500 text-white shadow-emerald-500/30 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
                                         <i class="fa-solid fa-door-closed text-lg"></i>
                                     </div>
                                     <div class="flex-1 min-w-0">
@@ -277,7 +277,7 @@
                             
                             <div class="flex justify-between items-start mb-4 z-10 relative shrink-0">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-indigo-500 text-white shadow-indigo-500/30 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+                                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-indigo-500 text-white shadow-indigo-500/30 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
                                         <i class="fa-solid fa-layer-group text-lg"></i>
                                     </div>
                                     <div>

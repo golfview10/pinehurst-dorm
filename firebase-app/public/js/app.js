@@ -332,6 +332,12 @@ window.SafeStorage = {
             }
 
             fetchSettings();
+            if (typeof initUserPresence === "function" && STATE.user) {
+                initUserPresence(STATE.user);
+            }
+            if (typeof listenToUserConversations === "function" && STATE.user && (STATE.user.name || STATE.user.username)) {
+                listenToUserConversations(STATE.user.name || STATE.user.username);
+            }
 
             // Auto-select: restore last project or auto-select if only 1 project
             const lastProject = window.SafeStorage.getItem('dms_lastProject');
@@ -360,7 +366,6 @@ window.SafeStorage = {
                     STATE.allRoomStatuses = res.statuses || [];
                     if (STATE.currentProject) {
                         STATE.projectRoomStatuses = STATE.allRoomStatuses.filter(s => s.project === STATE.currentProject);
-                        ensureDefaultRoomStatuses(STATE.currentProject);
                         // Make sure we re-render dashboard if needed (since statuses might be loaded async)
                         if (STATE.currentView === 'dashboard') renderDashboard();
                     }
@@ -369,36 +374,8 @@ window.SafeStorage = {
         }
 
         function ensureDefaultRoomStatuses(project) {
-            const defaults = [
-                { name: 'ห้องว่าง', colorType: 'predefined', color: 'emerald' },
-                { name: 'ไม่ว่าง', colorType: 'predefined', color: 'red' },
-                { name: 'ห้องจอง', colorType: 'predefined', color: 'yellow' },
-                { name: 'ห้องออกคืนประกัน', colorType: 'predefined', color: 'cyan' },
-                { name: 'ห้องตัดหนี', colorType: 'predefined', color: 'purple' },
-                { name: 'ปรับปรุง', colorType: 'predefined', color: 'gray' }
-            ];
-
-            let changed = false;
-            
-            // Cleanup previously injected bad defaults to prevent duplicates
-            const badNames = ['ว่าง', 'จอง', 'คืนประกัน', 'ตัดหนี'];
-            const initialLength = STATE.allRoomStatuses.length;
-            STATE.allRoomStatuses = STATE.allRoomStatuses.filter(s => !(s.project === project && badNames.includes(s.name)));
-            if (STATE.allRoomStatuses.length !== initialLength) {
-                changed = true;
-            }
-
-            defaults.forEach(d => {
-                // If this default status doesn't exist for the project, inject it
-                if (!STATE.allRoomStatuses.find(s => s.project === project && s.name === d.name)) {
-                    STATE.allRoomStatuses.push({ project, ...d });
-                    changed = true;
-                }
-            });
-
-            if (changed) {
-                STATE.projectRoomStatuses = STATE.allRoomStatuses.filter(s => s.project === project);
-            }
+            // Safe no-op: Do not auto-inject default statuses into existing project configurations.
+            // Custom statuses saved by the user are authoritative.
         }
 
         function fetchLayouts(project) {
@@ -485,7 +462,6 @@ window.SafeStorage = {
             // Filter Settings for this Project
             STATE.projectRoomTypes = STATE.allSettings.filter(s => s.project === p);
             STATE.projectRoomStatuses = STATE.allRoomStatuses.filter(s => s.project === p);
-            ensureDefaultRoomStatuses(p);
 
             document.getElementById('navProjectName').innerText = p;
             document.querySelector('aside').classList.remove('hidden');
@@ -702,6 +678,17 @@ window.SafeStorage = {
 
 
         function updateActiveNav(i) {
+            if (typeof i === 'string') {
+                document.querySelectorAll('.nav-item').forEach(l => {
+                    const match = l.getAttribute('data-view') === i || l.id === ('nav_' + i) || l.id === ('nav_' + i + '_desktop');
+                    l.classList.toggle('active-nav', match);
+                });
+                document.querySelectorAll('.nav-item-mobile').forEach(l => {
+                    const match = l.getAttribute('data-view') === i || l.id === ('nav_' + i + '_mobile');
+                    l.classList.toggle('active-mobile', match);
+                });
+                return;
+            }
             document.querySelectorAll('.nav-item').forEach((l, idx) => l.classList[idx === i ? 'add' : 'remove']('active-nav'));
             document.querySelectorAll('.nav-item-mobile').forEach((l, idx) => l.classList[idx === i ? 'add' : 'remove']('active-mobile'));
         }
@@ -888,6 +875,7 @@ window.SafeStorage = {
 
                                 <!-- Actions -->
                                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                                    <button onclick='openChatWithUser("${u.username}", "${u.role}")' class="flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-colors" title="ส่งข้อความหาผู้ใช้นี้"><i class="fa-solid fa-comment-dots mr-1.5"></i> ข้อความ</button>
                                     <button onclick='openUserModal(${JSON.stringify(u)})' class="flex items-center justify-center px-4 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                         <i class="fa-solid fa-pen-to-square mr-2"></i> แก้ไข
                                     </button>

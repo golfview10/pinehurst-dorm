@@ -20,34 +20,9 @@
         href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Building_icon.svg/512px-Building_icon.svg.png">
 
     <title>ผังห้องว่าง</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            safelist: [
-                'group-hover:bg-apple-blue',
-                'group-hover:bg-indigo-500',
-                'group-hover:bg-purple-500',
-                'group-hover:bg-orange-500',
-                'group-hover:bg-emerald-500',
-                'group-hover:text-white'
-            ],
-            theme: {
-                extend: {
-                    colors: {
-                        apple: {
-                            blue: '#007AFF',
-                            gray: '#F5F5F7',
-                            dark: '#1D1D1F',
-                            glass: 'rgba(255, 255, 255, 0.7)'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'Sarabun', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="css/tailwind.css">
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
@@ -207,6 +182,16 @@
                             <div id="userDisplay" class="text-sm font-bold text-[#1D1D1F]"></div>
                             <div class="text-[10px] text-apple-blue font-semibold uppercase tracking-wide flex justify-end items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-apple-blue animate-pulse"></span> Active</div>
                         </div>
+                        <!-- Messaging Button -->
+                        <div class="relative" id="msgNavWrapper">
+                            <button onclick="renderMessaging()"
+                                class="text-gray-400 hover:text-apple-blue transition p-2 rounded-full hover:bg-blue-50 relative"
+                                title="ข้อความภายใน">
+                                <i class="fa-solid fa-comments text-lg"></i>
+                                <span id="msgUnreadBadge"
+                                    class="hidden absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm animate-pulse">0</span>
+                            </button>
+                        </div>
                         <!-- Notification Bell -->
                         <div class="relative" id="notifBellWrapper">
                             <button onclick="toggleNotificationPanel()"
@@ -296,6 +281,18 @@
                                         class="absolute left-12 opacity-0 -translate-x-2 sidebar-text transition-all duration-300 whitespace-nowrap font-medium z-0">ใบจองกอล์ฟวิว</span>
                                 </a>
                             </li>
+                            <li id="nav_messaging_desktop">
+                                <a href="javascript:void(0)" onclick="renderMessaging()"
+                                    class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item relative border-l-4 border-transparent"
+                                    data-view="messaging"
+                                    title="ข้อความ">
+                                    <i class="fa-solid fa-comments w-7 text-center text-lg z-10 flex-shrink-0 text-blue-400"></i>
+                                    <span
+                                        class="absolute left-12 opacity-0 -translate-x-2 sidebar-text transition-all duration-300 whitespace-nowrap font-medium z-0">ข้อความ</span>
+                                    <span id="sidebarMsgBadge"
+                                        class="hidden absolute right-2 top-2 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center animate-pulse z-20">0</span>
+                                </a>
+                            </li>
                             <li>
                                 <a href="javascript:void(0)" onclick="renderSettings()"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item relative border-l-4 border-transparent"
@@ -376,6 +373,16 @@
                     </div>
                     <span class="text-[10px] mt-1 font-medium">ใบจอง</span>
                 </a>
+                <a href="javascript:void(0)" onclick="renderMessaging()" id="nav_messaging_mobile"
+                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition relative"
+                    data-view="messaging">
+                    <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600 relative">
+                        <i class="fa-solid fa-comments text-xl group-[.active-mobile]:scale-110 transition-transform text-blue-500"></i>
+                        <span id="mobileMsgBadge"
+                            class="hidden absolute top-0 right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center animate-pulse">0</span>
+                    </div>
+                    <span class="text-[10px] mt-1 font-medium group-[.active-mobile]:font-bold group-[.active-mobile]:text-apple-blue">ข้อความ</span>
+                </a>
                 <a href="javascript:void(0)" onclick="renderSettings()"
                     class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600">
@@ -421,6 +428,23 @@
             <div id="roomForm" class="flex flex-col flex-1 overflow-hidden bg-white">
                 <div class="flex-1 overflow-y-auto p-6 space-y-4">
                     <input type="hidden" id="editRowIndex">
+
+                    <!-- Batch Building Prompt for Admin -->
+                    <div id="roomModalBatchBanner" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-indigo-900 shadow-2xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-city text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-indigo-950">ต้องการสร้างทั้งตึก หรือสร้างห้องเป็นชุด?</p>
+                                <p class="text-indigo-600">กำหนดจำนวนชั้นและห้องพักอัตโนมัติด้วยเครื่องมือสร้างตึกใหม่</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeModal(); renderSettingsBatchBuilding();" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-xs transition shrink-0 flex items-center gap-1.5">
+                            <span>สร้างตึกใหม่</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </button>
+                    </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="col-span-1">
@@ -490,6 +514,9 @@
                                     <i class="fa-solid fa-couch text-amber-500 mr-2"></i>เฟอร์นิเจอร์ในห้อง
                                 </label>
                                 <div class="flex space-x-2">
+                                    <button type="button" onclick="openRoomFurnitureHistoryModal(document.getElementById('inp_roomNo').value)" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition">
+                                        <i class="fa-solid fa-clock-rotate-left mr-1"></i>ดูประวัติ
+                                    </button>
                                     <button type="button" onclick="openReturnFurnitureModal(document.getElementById('inp_roomNo').value)" class="text-xs bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100 transition">
                                         <i class="fa-solid fa-arrow-up-from-bracket mr-1"></i>คืน
                                     </button>
@@ -506,13 +533,19 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="px-6 py-4 border-t bg-gray-50 rounded-b-xl flex justify-end space-x-3 shrink-0 z-50">
-                    <button type="button" onclick="closeModal()"
-                        class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm">ยกเลิก</button>
-                    <button type="button" onclick="saveRoomData()"
-                        class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-emerald-200 transition flex items-center cursor-pointer">
-                        <i class="fa-solid fa-save mr-2"></i> บันทึก
+                <div class="px-6 py-4 border-t bg-gray-50 rounded-b-xl flex justify-between items-center shrink-0 z-50">
+                    <button type="button" id="btn_delete_room_modal" onclick="deleteCurrentRoomFromModal()"
+                        class="hidden px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-semibold transition flex items-center shadow-2xs">
+                        <i class="fa-solid fa-trash-can mr-1.5 text-xs"></i> ลบห้องนี้
                     </button>
+                    <div class="flex items-center space-x-3 ml-auto">
+                        <button type="button" onclick="closeModal()"
+                            class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition shadow-sm">ยกเลิก</button>
+                        <button type="button" onclick="saveRoomData()"
+                            class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg shadow-emerald-200 transition flex items-center cursor-pointer">
+                            <i class="fa-solid fa-save mr-2"></i> บันทึก
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -676,17 +709,22 @@
     <datalist id="list_addr"></datalist>
 
     <!-- Firebase Data Layer (must load before inline scripts) -->
-    <script src="js/firebase-config.js?v=31"></script>
-    <script src="js/db.js?v=32"></script>
+    <script src="js/firebase-config.js?v=47"></script>
+    <script src="js/db.js?v=47"></script>
 
     <!-- Modular Views -->
-    <script src="js/utils.js?v=32"></script>
-    <script src="js/app.js?v=32"></script>
-    <script src="js/views/dashboard.js?v=32"></script>
-    <script src="js/views/map.js?v=32"></script>
-    <script src="js/views/furniture.js?v=32"></script>
-    <script src="js/views/rooms.js?v=32"></script>
-    <script src="js/views/settings.js?v=32"></script>
+    <script src="js/utils.js?v=47"></script>
+    <script src="js/app.js?v=47"></script>
+    <script src="js/views/dashboard.js?v=47"></script>
+    <script src="js/views/map.js?v=47"></script>
+    <script src="js/views/furniture.js?v=47"></script>
+    <script src="js/views/rooms.js?v=47"></script>
+    <script src="js/views/settings.js?v=47"></script>
+    <script src="js/views/messaging.js?v=47"></script>
+
+    <!-- Floating Bottom-Right Chat Notification Container -->
+    <div id="bottomRightChatNotifContainer" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none sm:max-w-md"></div>
+
     <!-- Hidden elements to force Tailwind CDN to compile classes used in dynamically loaded JS views -->
     <div class="hidden">
         <div class="bg-blue-50 text-apple-blue group-hover:bg-apple-blue group-hover:text-white text-blue-700 bg-blue-100"></div>

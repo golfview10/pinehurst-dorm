@@ -31,8 +31,10 @@
                     <div class="px-2 py-2 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0 z-20">
                         <div class="flex items-center font-bold text-base text-gray-800">${backBtn}${title}</div>
                         <div class="flex space-x-1 items-center">
-                             <button onclick="openReportModal()" class="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700 transition text-xs"><i class="fa-solid fa-print"></i></button>
-                             <button onclick="openModal()" class="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition text-xs"><i class="fa-solid fa-plus"></i></button>
+                             ${filterBuilding ? `<button onclick="renderBuildingFloors('${filterBuilding}')" class="bg-purple-600 text-white px-2.5 py-1 rounded hover:bg-purple-700 transition text-xs flex items-center gap-1 shadow-sm font-semibold" title="จัดผังห้อง & ใส่อีโมจิ"><i class="fa-solid fa-grip"></i><span class="hidden sm:inline">จัดผัง/อีโมจิ</span></button>` : ''}
+                             ${STATE.user && STATE.user.role === 'Admin' ? `<button onclick="renderSettingsBatchBuilding('${filterBuilding || ''}')" class="bg-indigo-600 text-white px-2.5 py-1 rounded hover:bg-indigo-700 transition text-xs flex items-center gap-1 shadow-sm font-semibold" title="สร้างตึกใหม่ / เพิ่มห้องชุด (Admin)"><i class="fa-solid fa-city"></i><span class="hidden sm:inline">สร้างตึก</span></button>` : ''}
+                             <button onclick="openReportModal()" class="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700 transition text-xs" title="พิมพ์รายงาน"><i class="fa-solid fa-print"></i></button>
+                             <button onclick="openModal()" class="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition text-xs" title="เพิ่มห้องพัก"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
                     <div class="p-1 flex-1 overflow-y-auto" id="cardContainer">
@@ -40,7 +42,23 @@
             `;
 
             sortedFloors.forEach(f => {
-                const floorRooms = displayData.filter(r => parseRoomInfo(r.roomNo).floor === f);
+                let floorRooms = displayData.filter(r => parseRoomInfo(r.roomNo).floor === f);
+
+                // Ensure unique room numbers per floor
+                const uniqueMap = new Map();
+                floorRooms.forEach(r => {
+                    if (!uniqueMap.has(r.roomNo)) {
+                        uniqueMap.set(r.roomNo, r);
+                    } else {
+                        const existing = uniqueMap.get(r.roomNo);
+                        const isRUpdated = r.status && r.status !== 'ห้องว่าง';
+                        const isExistingUpdated = existing.status && existing.status !== 'ห้องว่าง';
+                        if (isRUpdated && !isExistingUpdated) {
+                            uniqueMap.set(r.roomNo, r);
+                        }
+                    }
+                });
+                floorRooms = Array.from(uniqueMap.values());
 
                 // Sort by Room Index (numeric)
                 floorRooms.sort((a, b) => {
@@ -50,15 +68,36 @@
                 });
 
                 if (floorRooms.length > 0) {
-                    // Check if this floor has a custom layout template (use String key for consistency)
-                    const layoutTemplate = filterBuilding ? (STATE.layouts[filterBuilding] && STATE.layouts[filterBuilding][String(f)]) : null;
+                    // Check if this floor has a custom layout template (with flexible building name matching)
+                    const getFloorLayout = (bldg, floorNum) => {
+                        if (!bldg || !STATE.layouts) return null;
+                        const fStr = String(floorNum);
+                        if (STATE.layouts[bldg] && STATE.layouts[bldg][fStr]) return STATE.layouts[bldg][fStr];
+                        const prefix = bldg.includes('/') ? bldg.split('/')[0] : null;
+                        const suffix = bldg.includes('/') ? bldg.split('/')[1] : null;
+                        if (prefix && STATE.layouts[prefix] && STATE.layouts[prefix][fStr]) return STATE.layouts[prefix][fStr];
+                        if (suffix && STATE.layouts[suffix] && STATE.layouts[suffix][fStr]) return STATE.layouts[suffix][fStr];
+                        for (const key of Object.keys(STATE.layouts)) {
+                            if (key.includes('/') && (key.startsWith(bldg + '/') || key.endsWith('/' + bldg))) {
+                                if (STATE.layouts[key] && STATE.layouts[key][fStr]) return STATE.layouts[key][fStr];
+                            }
+                        }
+                        return null;
+                    };
+
+                    const layoutTemplate = filterBuilding ? getFloorLayout(filterBuilding, f) : null;
                     let row1, row2, half;
 
-                    if (layoutTemplate) {
+                    let topEmoji = layoutTemplate ? (layoutTemplate.topEmoji || '') : '';
+                    let bottomEmoji = layoutTemplate ? (layoutTemplate.bottomEmoji || '') : '';
+
+                    if (layoutTemplate && typeof applyLayoutTemplate === 'function') {
                         // Use custom layout template
                         const arranged = applyLayoutTemplate(layoutTemplate, floorRooms, f);
                         row1 = arranged.topRow;
                         row2 = arranged.bottomRow;
+                        if (arranged.topEmoji) topEmoji = arranged.topEmoji;
+                        if (arranged.bottomEmoji) bottomEmoji = arranged.bottomEmoji;
                         // Suites span 2 columns, so count effective column slots
                         const effectiveCols = (items) => items.reduce((sum, r) => sum + (r._isSuite ? 2 : 1), 0);
                         half = Math.max(effectiveCols(row1), effectiveCols(row2));
@@ -109,12 +148,26 @@
                         <div class="flex items-center space-x-2 border-b border-gray-100 pb-1 last:border-0 relative">
                             <div class="w-8 shrink-0 text-center bg-gray-800 text-white text-[10px] font-bold rounded flex items-center justify-center self-stretch py-1">FL.${f}</div>
                             <div class="flex-1 overflow-visible pb-1">
+                                ${topEmoji ? `
+                                <div class="flex items-center justify-center py-0.5 mb-1 text-xs select-none">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-0.5 bg-gray-100/90 text-gray-700 rounded-full text-xs font-bold border border-gray-200/80 shadow-2xs">
+                                        ${escapeHtml(topEmoji)}
+                                    </span>
+                                </div>
+                                ` : ''}
                                 <div class="grid gap-1 mb-0.5" style="${gridStyle}">
                                     ${renderRowHtml(row1)}
                                 </div>
                                 <div class="grid gap-1" style="${gridStyle}">
                                     ${renderRowHtml(row2)}
                                 </div>
+                                ${bottomEmoji ? `
+                                <div class="flex items-center justify-center py-0.5 mt-1 text-xs select-none">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-0.5 bg-gray-100/90 text-gray-700 rounded-full text-xs font-bold border border-gray-200/80 shadow-2xs">
+                                        ${escapeHtml(bottomEmoji)}
+                                    </span>
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
                     `;
@@ -353,11 +406,71 @@
                 document.getElementById('inp_roomNo').disabled = false;
                 // document.getElementById('inp_roomType').disabled = false;
             }
+
+            const batchBanner = document.getElementById('roomModalBatchBanner');
+            if (batchBanner) {
+                if (!rowIndex && STATE.user && STATE.user.role === 'Admin') {
+                    batchBanner.classList.remove('hidden');
+                } else {
+                    batchBanner.classList.add('hidden');
+                }
+            }
+
+            const delBtn = document.getElementById('btn_delete_room_modal');
+            if (delBtn) {
+                if (rowIndex && STATE.user && STATE.user.role === 'Admin') {
+                    delBtn.classList.remove('hidden');
+                } else {
+                    delBtn.classList.add('hidden');
+                }
+            }
+
             window.toggleBookingDuration();
             document.getElementById('roomModal').classList.remove('hidden');
         }
 
         function closeModal() { document.getElementById('roomModal').classList.add('hidden'); }
+
+        function deleteCurrentRoomFromModal() {
+            const roomNo = document.getElementById('inp_roomNo').value.trim();
+            if (!roomNo) return;
+            if (!STATE.user || STATE.user.role !== 'Admin') {
+                showToast('Access Denied', 'สำหรับ Admin เท่านั้น', 'error');
+                return;
+            }
+
+            const item = STATE.data.find(r => r.roomNo === roomNo);
+            const bldgInfo = parseRoomInfo(roomNo);
+            const statusText = item ? (item.status || 'ห้องว่าง') : '';
+
+            showConfirmModal(
+                'ย้ายห้องไปถังขยะ',
+                `คุณต้องการย้ายห้อง <b>${roomNo}</b> (ตึก ${bldgInfo.building}, สถานะ: ${statusText}) ไปยังถังขยะหรือไม่?<br><br><span class="text-xs text-gray-500">• ห้องจะหายไปจากตึกทันที<br>• สามารถตรวจสอบประวัติและกู้คืนได้ภายใน <b>30 วัน</b> ที่หน้าตั้งค่าระบบ</span>`,
+                async () => {
+                    showLoading(true);
+                    try {
+                        const res = await callApi('softDeleteRoom', {
+                            project: STATE.currentProject,
+                            roomNo: roomNo,
+                            user: STATE.user
+                        });
+                        showLoading(false);
+                        closeModal();
+                        if (res.success) {
+                            showToast('สำเร็จ', res.message, 'success');
+                            await fetchProjectData(STATE.currentProject, true, true);
+                        } else {
+                            showToast('ผิดพลาด', res.message, 'error');
+                        }
+                    } catch (err) {
+                        showLoading(false);
+                        showToast('Error', err.message, 'error');
+                    }
+                },
+                'fa-trash-can',
+                'bg-red-500'
+            );
+        }
 
         function saveRoomData() {
             const roomNo = document.getElementById('inp_roomNo').value.trim();
@@ -429,6 +542,23 @@
             let html = `
                 <div class="max-w-2xl mx-auto p-6 fade-in-up">
                     <button onclick="renderSettings()" class="mb-4 text-gray-500 hover:text-blue-600 flex items-center"><i class="fa-solid fa-arrow-left mr-2"></i> กลับไปตั้งค่า</button>
+                    ${STATE.user && STATE.user.role === 'Admin' ? `
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3.5 mb-4 flex items-center justify-between gap-3 text-xs text-indigo-900 shadow-2xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-city text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-indigo-950 text-sm">ต้องการสร้างทั้งตึก หรือสร้างห้องพักเป็นชุด?</p>
+                                <p class="text-indigo-600">กำหนดจำนวนชั้นและจำนวนห้องในแต่ละชั้นได้ยืดหยุ่นในคราวเดียว</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="renderSettingsBatchBuilding()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-xs transition shrink-0 flex items-center gap-1.5">
+                            <span>สร้างตึกใหม่</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                    ` : ''}
                     <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                         <div class="bg-purple-600 px-6 py-4 border-b border-purple-700">
                              <h2 class="text-xl font-bold text-white flex items-center"><i class="fa-solid fa-plus-circle mr-2"></i> เพิ่มห้องพักใหม่</h2>
@@ -730,4 +860,74 @@
                 renderVisualMap();
             }
         });
+
+        async function openRoomFurnitureHistoryModal(roomNo) {
+            if (!roomNo) return;
+            
+            showLoading(true);
+            try {
+                const res = await callApi('getRoomFurnitureHistory', { project: STATE.currentProject, roomNo });
+                if (!res.success) throw new Error(res.message);
+                
+                const history = res.data || [];
+                
+                let contentHtml = '';
+                if (history.length === 0) {
+                    contentHtml = `<div class="text-center py-10 text-gray-400"><i class="fa-solid fa-clock-rotate-left text-3xl mb-2 text-gray-300"></i><br>ไม่มีประวัติการเพิ่ม/คืนเฟอร์นิเจอร์</div>`;
+                } else {
+                    contentHtml = `<div class="space-y-3 p-4">`;
+                    history.forEach(item => {
+                        const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+                        const isAdd = item.action === 'add';
+                        const iconClass = isAdd ? 'fa-plus' : 'fa-arrow-right-from-bracket';
+                        const colorClass = isAdd ? 'emerald' : 'red';
+                        
+                        contentHtml += `
+                            <div class="bg-white border border-${colorClass}-100 rounded-xl p-3 shadow-sm flex items-start space-x-3">
+                                <div class="bg-${colorClass}-100 text-${colorClass}-600 w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                                    <i class="fa-solid ${iconClass}"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h4 class="font-bold text-gray-800 text-sm truncate">${item.furnitureName} <span class="text-xs text-gray-500 font-normal ml-1">x${item.quantity}</span></h4>
+                                        <span class="text-[10px] text-gray-500 whitespace-nowrap ml-2">${dateStr}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600 flex items-center mb-1">
+                                        <i class="fa-regular fa-user mr-1 text-gray-400"></i> ${item.userName}
+                                    </div>
+                                    ${item.remark ? `<div class="text-[11px] text-gray-500 bg-gray-50 p-1.5 rounded border border-gray-100 italic break-words">${item.remark}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    contentHtml += `</div>`;
+                }
+                
+                const modalHtml = `
+                    <div id="roomFurnitureHistoryModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
+                        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
+                            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-indigo-50 rounded-t-2xl shrink-0">
+                                <div>
+                                    <h3 class="font-bold text-lg text-indigo-800"><i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-600"></i>ประวัติเฟอร์นิเจอร์ ห้อง ${roomNo}</h3>
+                                </div>
+                                <button onclick="document.getElementById('roomFurnitureHistoryModal').remove()" class="text-gray-400 hover:text-gray-600 transition w-8 h-8 flex justify-center items-center rounded-full hover:bg-white/50"><i class="fa-solid fa-xmark text-xl"></i></button>
+                            </div>
+                            <div class="p-0 overflow-y-auto flex-1 bg-gray-50/50">
+                                ${contentHtml}
+                            </div>
+                            <div class="p-4 border-t border-gray-100 shrink-0 bg-white rounded-b-2xl flex justify-end">
+                                <button onclick="document.getElementById('roomFurnitureHistoryModal').remove()" class="px-5 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition">ปิดหน้าต่าง</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                cleanupModals();
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            } catch (error) {
+                showToast('เกิดข้อผิดพลาด', error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
 

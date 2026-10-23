@@ -1,0 +1,73 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "furnitureLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "project",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomNo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "furnitureLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "project",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "building",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "furnitureLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "project",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "action",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "furnitureLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "project",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

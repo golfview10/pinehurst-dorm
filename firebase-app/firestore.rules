@@ -39,6 +39,12 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // DeletedRooms collection (Recycle Bin / Soft Delete)
+    match /deletedRooms/{deletedId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
     // ProjectSummary collection
     match /projectSummary/{projectId} {
       allow read: if isAuthenticated();
@@ -120,5 +126,19 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
     }
+
+    // =====================================================
+    // INTERNAL MESSAGING SYSTEM
+    // =====================================================
+    match /messages/{conversationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+
+      match /chats/{chatId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+    }
   }
 }
+

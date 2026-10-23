@@ -53,6 +53,6 @@ window.addEventListener('unhandledrejection', function(event) {
 });
 
 // Project list (same as original)
-const PROJECTS = ["กอล์ฟวิว", "กอล์ฟซิตี้", "กอล์ฟแมนชั่น", "เมเปิลซิตี้", "เมเปิลแมนชั่น"];
+const PROJECTS = ["กอล์ฟวิว", "กอล์ฟซิตี้", "กอล์ฟแมนชั่น", "เมเปิลซิตี้", "เมเปิลแมนชั่น", "City Condo"];
 
 console.log('[Firebase] Initialized successfully');

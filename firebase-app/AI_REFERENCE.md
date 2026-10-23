@@ -321,6 +321,11 @@ selectProject(project)
 | `getProjectData` | `handleGetProjectDataFirebase()` | ดึงข้อมูลห้อง + ตั้ง real-time listener |
 | `saveRoomData` | `handleSaveRoomDataFirebase()` | บันทึกข้อมูลห้อง (ใช้ transaction) |
 | `addRoom` | `handleAddRoomFirebase()` | เพิ่มห้องใหม่ |
+| `batchCreateRooms` | `handleBatchCreateRoomsFirebase()` | สร้างตึกใหม่และห้องพักเป็นชุด (Admin) |
+| `softDeleteRoom` | `handleSoftDeleteRoomFirebase()` | ย้ายห้องไปถังขยะ 30 วัน (Admin) |
+| `getDeletedRooms` | `handleGetDeletedRoomsFirebase()` | ดึงรายการห้องในถังขยะและล้างห้องเกิน 30 วัน (Admin) |
+| `restoreRoom` | `handleRestoreRoomFirebase()` | กู้คืนห้องจากถังขยะกลับเข้าตึกเดิม (Admin) |
+| `permanentDeleteRoom` | `handlePermanentDeleteRoomFirebase()` | ลบห้องถาวรจาก Firebase ทันที (Admin) |
 | `getSettings` | `handleGetSettingsFirebase()` | ดึงประเภทห้อง |
 | `saveSettings` | `handleSaveSettingsFirebase()` | บันทึกประเภทห้อง (delete all + re-add) |
 | `getRoomStatuses` | `handleGetRoomStatusesFirebase()` | ดึงสถานะห้อง |
@@ -378,9 +383,9 @@ parseRoomInfoForDb("A1101")
 
 ## 🏢 โครงการ (Projects)
 
-ระบบรองรับ 5 โครงการ (hardcode ใน `firebase-config.js`):
+ระบบรองรับโครงการ (กำหนดใน `firebase-config.js`):
 ```javascript
-const PROJECTS = ["กอล์ฟวิว", "กอล์ฟซิตี้", "กอล์ฟแมนชั่น", "เมเปิลซิตี้", "เมเปิลแมนชั่น"];
+const PROJECTS = ["กอล์ฟวิว", "กอล์ฟซิตี้", "กอล์ฟแมนชั่น", "เมเปิลซิตี้", "เมเปิลแมนชั่น", "City Condo"];
 ```
 
 ### Zone Config (เฉพาะ Visual Map)
