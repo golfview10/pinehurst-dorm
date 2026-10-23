@@ -20,7 +20,7 @@
         href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Building_icon.svg/512px-Building_icon.svg.png">
 
     <title>ผังห้องว่าง</title>
-    <link rel="stylesheet" href="css/tailwind.css?v=48">
+    <link rel="stylesheet" href="css/tailwind.css?v=49">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -35,7 +35,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-    <link rel="stylesheet" href="css/style.css?v=48">
+    <link rel="stylesheet" href="css/style.css?v=49">
 </head>
 
 <body class="bg-[#F5F5F7] text-[#1D1D1F] font-sans h-screen overflow-hidden flex flex-col">
@@ -245,6 +245,7 @@
                             <li>
                                 <a href="javascript:void(0)" onclick="renderDashboard()"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item active-nav relative border-l-4 border-transparent"
+                                    data-view="dashboard"
                                     title="ภาพรวม">
                                     <i class="fa-solid fa-chart-pie w-7 text-center text-lg z-10 flex-shrink-0"></i>
                                     <span
@@ -254,6 +255,7 @@
                             <li>
                                 <a href="javascript:void(0)" onclick="renderVisualMap()"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item relative border-l-4 border-transparent"
+                                    data-view="map"
                                     title="ผังตึก / โซน">
                                     <i class="fa-solid fa-building w-7 text-center text-lg z-10 flex-shrink-0"></i>
                                     <span
@@ -264,6 +266,7 @@
                             <li>
                                 <a href="javascript:void(0)" onclick="renderFurnitureMap()"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item relative border-l-4 border-transparent"
+                                    data-view="furniture"
                                     title="ผังเฟอร์นิเจอร์">
                                     <i class="fa-solid fa-couch w-7 text-center text-lg z-10 flex-shrink-0 text-amber-500"></i>
                                     <span
@@ -274,6 +277,7 @@
                                 <a href="https://script.google.com/macros/s/AKfycbwuKrZEc-7YxKWWKidlB7Up5aQ3ygiKMLyw7qJe7phK2bKV4gg9N0H4BzBuool-4XWpJw/exec"
                                     target="_blank"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item text-emerald-400 relative border-l-4 border-transparent"
+                                    data-view="golf_booking"
                                     title="ใบจองกอล์ฟวิว">
                                     <i
                                         class="fa-solid fa-calendar-check w-7 text-center text-lg z-10 flex-shrink-0"></i>
@@ -296,6 +300,7 @@
                             <li>
                                 <a href="javascript:void(0)" onclick="renderSettings()"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item relative border-l-4 border-transparent"
+                                    data-view="settings"
                                     title="ตั้งค่า">
                                     <i class="fa-solid fa-cog w-7 text-center text-lg z-10 flex-shrink-0"></i>
                                     <span
@@ -305,6 +310,7 @@
                             <li id="nav_admin_logs" class="hidden">
                                 <a href="javascript:void(0)" onclick="renderLogs()"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item relative border-l-4 border-transparent"
+                                    data-view="logs"
                                     title="ประวัติการทำงาน (Logs)">
                                     <i
                                         class="fa-solid fa-clock-rotate-left w-7 text-center text-lg z-10 flex-shrink-0"></i>
@@ -316,6 +322,7 @@
                                 <a href="https://script.google.com/macros/s/AKfycbyy0ybdwRRBVeb7wc3XH0wbKvkQNfdO1K_ho50dakuRBuYbd7C3LT1uLL0IDholdJKM/exec"
                                     target="_blank"
                                     class="flex items-center py-3 px-2 rounded-lg hover:bg-gray-800 transition nav-item text-orange-400 relative border-l-4 border-transparent"
+                                    data-view="store"
                                     title="ร้านค้า">
                                     <i class="fa-solid fa-store w-7 text-center text-lg z-10 flex-shrink-0"></i>
                                     <span
@@ -344,21 +351,24 @@
             <!-- Mobile Nav (Apple iOS Style) -->
             <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-30 flex justify-around items-center h-[68px] border-t border-gray-200/50 pb-safe">
                 <a href="javascript:void(0)" onclick="renderDashboard()"
-                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile active-mobile group transition">
+                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile active-mobile group transition"
+                    data-view="dashboard">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600">
                         <i class="fa-solid fa-chart-pie text-xl group-[.active-mobile]:scale-110 transition-transform"></i>
                     </div>
                     <span class="text-[10px] mt-1 font-medium group-[.active-mobile]:font-bold group-[.active-mobile]:text-apple-blue">ภาพรวม</span>
                 </a>
                 <a href="javascript:void(0)" onclick="renderVisualMap()"
-                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition">
+                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition"
+                    data-view="map">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600">
                         <i class="fa-solid fa-building text-xl group-[.active-mobile]:scale-110 transition-transform"></i>
                     </div>
                     <span class="text-[10px] mt-1 font-medium group-[.active-mobile]:font-bold group-[.active-mobile]:text-apple-blue">ผังตึก</span>
                 </a>
                 <a href="javascript:void(0)" onclick="renderFurnitureMap()"
-                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition">
+                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition"
+                    data-view="furniture">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600">
                         <i class="fa-solid fa-couch text-xl group-[.active-mobile]:scale-110 transition-transform text-amber-500"></i>
                     </div>
@@ -367,7 +377,8 @@
 
                 <a href="https://script.google.com/macros/s/AKfycbwuKrZEc-7YxKWWKidlB7Up5aQ3ygiKMLyw7qJe7phK2bKV4gg9N0H4BzBuool-4XWpJw/exec"
                     target="_blank" id="nav_golf_booking_mobile"
-                    class="hidden flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-apple-blue hover:text-blue-700 nav-item-mobile transition">
+                    class="hidden flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-apple-blue hover:text-blue-700 nav-item-mobile transition"
+                    data-view="golf_booking">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-blue-50">
                         <i class="fa-solid fa-calendar-check text-xl transition-transform"></i>
                     </div>
@@ -384,14 +395,16 @@
                     <span class="text-[10px] mt-1 font-medium group-[.active-mobile]:font-bold group-[.active-mobile]:text-apple-blue">ข้อความ</span>
                 </a>
                 <a href="javascript:void(0)" onclick="renderSettings()"
-                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition">
+                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition"
+                    data-view="settings">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600">
                         <i class="fa-solid fa-cog text-xl group-[.active-mobile]:scale-110 transition-transform"></i>
                     </div>
                     <span class="text-[10px] mt-1 font-medium group-[.active-mobile]:font-bold group-[.active-mobile]:text-apple-blue">ตั้งค่า</span>
                 </a>
                 <a href="javascript:void(0)" onclick="renderLogs()" id="nav_admin_logs_mobile"
-                    class="hidden flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition">
+                    class="hidden flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-gray-400 nav-item-mobile group transition"
+                    data-view="logs">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors group-[.active-mobile]:bg-apple-blue/10 group-[.active-mobile]:text-apple-blue group-hover:bg-gray-100 group-hover:text-gray-600">
                         <i class="fa-solid fa-clock-rotate-left text-xl group-[.active-mobile]:scale-110 transition-transform"></i>
                     </div>
@@ -399,7 +412,8 @@
                 </a>
                 <a href="https://script.google.com/macros/s/AKfycbyy0ybdwRRBVeb7wc3XH0wbKvkQNfdO1K_ho50dakuRBuYbd7C3LT1uLL0IDholdJKM/exec"
                     target="_blank"
-                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-orange-400 hover:text-orange-600 nav-item-mobile transition">
+                    class="flex flex-col items-center justify-center w-full h-full pt-2 pb-1 text-orange-400 hover:text-orange-600 nav-item-mobile transition"
+                    data-view="store">
                     <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-orange-50">
                         <i class="fa-solid fa-store text-xl transition-transform"></i>
                     </div>
@@ -709,18 +723,18 @@
     <datalist id="list_addr"></datalist>
 
     <!-- Firebase Data Layer (must load before inline scripts) -->
-    <script src="js/firebase-config.js?v=48"></script>
-    <script src="js/db.js?v=48"></script>
+    <script src="js/firebase-config.js?v=49"></script>
+    <script src="js/db.js?v=49"></script>
 
     <!-- Modular Views -->
-    <script src="js/utils.js?v=48"></script>
-    <script src="js/app.js?v=48"></script>
-    <script src="js/views/dashboard.js?v=48"></script>
-    <script src="js/views/map.js?v=48"></script>
-    <script src="js/views/furniture.js?v=48"></script>
-    <script src="js/views/rooms.js?v=48"></script>
-    <script src="js/views/settings.js?v=48"></script>
-    <script src="js/views/messaging.js?v=48"></script>
+    <script src="js/utils.js?v=49"></script>
+    <script src="js/app.js?v=49"></script>
+    <script src="js/views/dashboard.js?v=49"></script>
+    <script src="js/views/map.js?v=49"></script>
+    <script src="js/views/furniture.js?v=49"></script>
+    <script src="js/views/rooms.js?v=49"></script>
+    <script src="js/views/settings.js?v=49"></script>
+    <script src="js/views/messaging.js?v=49"></script>
 
     <!-- Floating Bottom-Right Chat Notification Container -->
     <div id="bottomRightChatNotifContainer" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none sm:max-w-md"></div>

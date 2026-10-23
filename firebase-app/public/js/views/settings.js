@@ -143,7 +143,7 @@
                         
                         `;
             document.getElementById('mainContent').innerHTML = html;
-            updateActiveNav(4);
+            updateActiveNav('settings');
             
             // Show Admin tools if role is admin
             if (STATE.user && STATE.user.role === 'Admin') {
@@ -254,7 +254,7 @@
             `;
 
             document.getElementById('mainContent').innerHTML = html;
-            updateActiveNav(4);
+            updateActiveNav('settings');
 
             function renderCardGroupRowHtml(idx, g, allBuildings) {
                 const selected = Array.isArray(g.buildings) ? g.buildings : [];
@@ -582,7 +582,7 @@
                     <span class="font-bold text-lg ${isSuite ? 'text-amber-700' : 'text-purple-700'}">${roomLabel}</span>
                     ${isSuite ? '<span class="text-[9px] text-amber-600 font-bold">สูท (2x)</span>' : ''}
                     <div class="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <button onclick="_layoutToggleSuite('${suffix}', '${building}', '${sampleFloor}')" class="${isSuite ? 'bg-gray-500' : 'bg-amber-500'} text-white rounded-full w-5 h-5 text-[9px] flex items-center justify-center" title="${isSuite ? 'ยกเลิกสูท' : 'กำหนดเป็นสูท'}"><i class="fa-solid ${isSuite ? 'fa-compress' : 'fa-expand'}"></i></button>
+                        <button onclick="_layoutToggleSuite('${suffix}', '${building}', '${sampleFloor}')" class="${isSuite ? 'bg-gray-600 hover:bg-gray-700' : 'bg-amber-500 hover:bg-amber-600'} text-white rounded-full w-5 h-5 text-[9px] flex items-center justify-center transition shadow-xs" style="background-color: ${isSuite ? '#4b5563' : '#f59e0b'}; color: #ffffff;" title="${isSuite ? 'ยกเลิกสูท' : 'กำหนดเป็นสูท'}"><i class="fa-solid ${isSuite ? 'fa-compress' : 'fa-expand'}" style="color: #ffffff;"></i></button>
                         <button onclick="_layoutMoveToOtherRow('${suffix}', '${rowName}', ${idx}, '${building}', '${sampleFloor}')" class="bg-blue-500 text-white rounded-full w-5 h-5 text-[9px] flex items-center justify-center" title="ย้ายแถว"><i class="fa-solid fa-arrows-up-down"></i></button>
                         <button onclick="_layoutRemoveItem('${rowName}', ${idx}, '${building}', '${sampleFloor}')" class="bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center" title="นำออก"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -2113,7 +2113,7 @@
 
             html += `</div>`;
             document.getElementById('mainContent').innerHTML = html;
-            updateActiveNav(4);
+            updateActiveNav('settings');
         }
 
         /**
@@ -2397,8 +2397,8 @@
                             <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div>
                                     <div class="flex items-center gap-3 mb-1">
-                                        <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-inner">
-                                            <i class="fa-solid fa-city"></i>
+                                        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shadow-md shrink-0" style="background-color: #ffffff; color: #4f46e5;">
+                                            <i class="fa-solid fa-city" style="color: #4f46e5;"></i>
                                         </div>
                                         <h2 class="text-2xl font-bold tracking-tight">สร้างตึกใหม่ & ห้องพักเป็นชุด</h2>
                                     </div>
@@ -3072,17 +3072,17 @@
                             <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div>
                                     <div class="flex items-center gap-3 mb-1">
-                                        <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-inner">
-                                            <i class="fa-solid fa-trash-can"></i>
+                                        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shadow-md shrink-0" style="background-color: #ffffff; color: #e11d48;">
+                                            <i class="fa-solid fa-trash-can" style="color: #e11d48;"></i>
                                         </div>
                                         <h2 class="text-2xl font-bold tracking-tight">ถังขยะห้องพัก & กู้คืนข้อมูล</h2>
                                     </div>
                                     <p class="text-rose-100 text-xs sm:text-sm">ตรวจสอบประวัติห้องที่ถูกลบ กู้คืนกลับสู่ตึกเดิมได้ภายใน 30 วัน หลังจาก 30 วันระบบจะล้างข้อมูลถาวร</p>
                                 </div>
                                 <div class="shrink-0 flex items-center gap-2">
-                                    <button type="button" onclick="loadRecycleBinData('${project}')" class="px-3.5 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                                        <i class="fa-solid fa-arrows-rotate"></i>
-                                        <span>รีเฟรช</span>
+                                    <button type="button" onclick="loadRecycleBinData('${project}')" class="px-3.5 py-2 bg-white hover:bg-rose-50 text-rose-600 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md active:scale-95" style="background-color: #ffffff; color: #e11d48;">
+                                        <i class="fa-solid fa-arrows-rotate text-xs" style="color: #e11d48;"></i>
+                                        <span style="color: #e11d48; font-weight: 700;">รีเฟรช</span>
                                     </button>
                                 </div>
                             </div>

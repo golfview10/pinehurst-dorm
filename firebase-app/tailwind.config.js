@@ -18,7 +18,8 @@ module.exports = {
     'text-teal-700', 'bg-teal-100', 'bg-teal-50', 'text-teal-600', 'bg-teal-500', 'border-teal-200',
     'text-amber-700', 'bg-amber-100', 'bg-amber-50', 'text-amber-600', 'bg-amber-500', 'border-amber-300', 'border-amber-400',
     'text-red-700', 'bg-red-100', 'bg-rose-500',
-    'bg-indigo-600', 'bg-indigo-700', 'hover:bg-indigo-700', 'from-indigo-600', 'to-purple-600', 'bg-gradient-to-r'
+    'bg-indigo-600', 'bg-indigo-700', 'hover:bg-indigo-700', 'from-indigo-600', 'to-purple-600', 'bg-gradient-to-r',
+    'bg-gray-500', 'bg-gray-600'
   ],
   theme: {
     extend: {

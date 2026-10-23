@@ -678,19 +678,32 @@ window.SafeStorage = {
 
 
         function updateActiveNav(i) {
-            if (typeof i === 'string') {
-                document.querySelectorAll('.nav-item').forEach(l => {
-                    const match = l.getAttribute('data-view') === i || l.id === ('nav_' + i) || l.id === ('nav_' + i + '_desktop');
-                    l.classList.toggle('active-nav', match);
-                });
-                document.querySelectorAll('.nav-item-mobile').forEach(l => {
-                    const match = l.getAttribute('data-view') === i || l.id === ('nav_' + i + '_mobile');
-                    l.classList.toggle('active-mobile', match);
-                });
-                return;
-            }
-            document.querySelectorAll('.nav-item').forEach((l, idx) => l.classList[idx === i ? 'add' : 'remove']('active-nav'));
-            document.querySelectorAll('.nav-item-mobile').forEach((l, idx) => l.classList[idx === i ? 'add' : 'remove']('active-mobile'));
+            const indexToView = {
+                0: 'dashboard',
+                1: 'map',
+                2: 'furniture',
+                3: 'golf_booking',
+                4: 'messaging',
+                5: 'settings',
+                6: 'logs',
+                7: 'store'
+            };
+            const targetView = (typeof i === 'string') ? i : (i === -1 ? '__none__' : indexToView[i] || '');
+
+            document.querySelectorAll('.nav-item').forEach((l, idx) => {
+                const viewAttr = l.getAttribute('data-view');
+                const isMatch = targetView 
+                    ? (targetView === '__none__' ? false : (viewAttr === targetView || l.id === ('nav_' + targetView) || l.id === ('nav_' + targetView + '_desktop')))
+                    : (idx === i);
+                l.classList.toggle('active-nav', !!isMatch);
+            });
+            document.querySelectorAll('.nav-item-mobile').forEach((l, idx) => {
+                const viewAttr = l.getAttribute('data-view');
+                const isMatch = targetView 
+                    ? (targetView === '__none__' ? false : (viewAttr === targetView || l.id === ('nav_' + targetView + '_mobile')))
+                    : (idx === i);
+                l.classList.toggle('active-mobile', !!isMatch);
+            });
         }
         function openReportModal() {
             // Reset Date Filters
@@ -1107,7 +1120,7 @@ window.SafeStorage = {
 
         async function renderLogs() {
             STATE.currentView = 'logs';
-            updateActiveNav(4);
+            updateActiveNav('logs');
             
             if (STATE.logsFilter.project === null) {
                 STATE.logsFilter.project = STATE.currentProject || '';
