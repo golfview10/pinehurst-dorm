@@ -78,8 +78,8 @@
                     <!-- Group 3: Data & Admin -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div onclick="renderSettingsFurniture()" class="flex items-center gap-3 p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors group">
-                            <div class="w-8 h-8 rounded-lg bg-orange-400 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="fa-solid fa-couch text-sm"></i>
+                            <div class="w-8 h-8 rounded-lg bg-orange-400 text-white flex items-center justify-center shrink-0 shadow-sm" style="background-color: #fb923c; color: #ffffff;">
+                                <i class="fa-solid fa-couch text-sm" style="color: #ffffff;"></i>
                             </div>
                             <div class="flex-grow text-left">
                                 <h3 class="font-medium text-[16px] text-gray-900">จัดการเฟอร์นิเจอร์</h3>
@@ -88,11 +88,11 @@
                         </div>
 
                         <div onclick="if(STATE.user && STATE.user.role === 'Admin') renderSettingsBatchBuilding(); else showToast('Access Denied', 'สำหรับ Admin เท่านั้น', 'error');" 
-                             class="flex items-center p-4 border-b border-gray-100 ${STATE.user && STATE.user.role === 'Admin' ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'} transition-colors group">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="fa-solid fa-city text-sm"></i>
+                             class="flex items-center gap-3 p-4 border-b border-gray-100 ${STATE.user && STATE.user.role === 'Admin' ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'} transition-colors group">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm" style="background-color: #4f46e5; color: #ffffff;">
+                                <i class="fa-solid fa-city text-sm" style="color: #ffffff;"></i>
                             </div>
-                            <div class="ml-4 flex-grow flex items-center justify-between">
+                            <div class="flex-grow flex items-center justify-between">
                                 <div>
                                     <h3 class="font-medium text-[16px] text-gray-900">สร้างตึกใหม่ / เพิ่มห้องชุด</h3>
                                     <p class="text-xs text-gray-400 mt-0.5">สร้างตึกและห้องพักเป็นชุด กำหนดจำนวนชั้นและจำนวนห้องแต่ละชั้น</p>
@@ -103,11 +103,11 @@
                         </div>
 
                         <div onclick="if(STATE.user && STATE.user.role === 'Admin') renderSettingsRoomRecycleBin(); else showToast('Access Denied', 'สำหรับ Admin เท่านั้น', 'error');" 
-                             class="flex items-center p-4 border-b border-gray-100 ${STATE.user && STATE.user.role === 'Admin' ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'} transition-colors group">
-                            <div class="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="fa-solid fa-trash-can text-sm"></i>
+                             class="flex items-center gap-3 p-4 border-b border-gray-100 ${STATE.user && STATE.user.role === 'Admin' ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'} transition-colors group">
+                            <div class="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm" style="background-color: #f43f5e; color: #ffffff;">
+                                <i class="fa-solid fa-trash-can text-sm" style="color: #ffffff;"></i>
                             </div>
-                            <div class="ml-4 flex-grow flex items-center justify-between">
+                            <div class="flex-grow flex items-center justify-between">
                                 <div>
                                     <h3 class="font-medium text-[16px] text-gray-900">ถังขยะห้องพัก & กู้คืนข้อมูล</h3>
                                     <p class="text-xs text-gray-400 mt-0.5">ประวัติห้องที่ถูกลบ สามารถกู้คืนได้ภายใน 30 วันก่อนถูกลบถาวร</p>
@@ -118,20 +118,20 @@
                         </div>
 
                         <div onclick="if(STATE.user.role === 'Admin') renderSettingsUsers(); else showToast('Access Denied', 'สำหรับ Admin เท่านั้น', 'error');" 
-                             class="flex items-center p-4 border-b border-gray-100 ${STATE.user.role === 'Admin' ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'} transition-colors group">
-                            <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="fa-solid fa-users text-sm"></i>
+                             class="flex items-center gap-3 p-4 border-b border-gray-100 ${STATE.user.role === 'Admin' ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60 cursor-not-allowed'} transition-colors group">
+                            <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm" style="background-color: #2563eb; color: #ffffff;">
+                                <i class="fa-solid fa-users text-sm" style="color: #ffffff;"></i>
                             </div>
-                            <div class="ml-4 flex-grow flex items-center gap-2">
+                            <div class="flex-grow flex items-center gap-2">
                                 <h3 class="font-medium text-[16px] text-gray-900">จัดการผู้ใช้</h3>
                                 ${STATE.user.role !== 'Admin' ? '<span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-gray-200 px-1.5 py-0.5 rounded">Admin Only</span>' : ''}
                             </div>
                             ${STATE.user.role !== 'Admin' ? '<i class="fa-solid fa-lock text-gray-300 text-sm"></i>' : '<i class="fa-solid fa-chevron-right text-gray-300 text-sm group-hover:text-blue-600 transition-colors"></i>'}
                         </div>
 
-                        <div onclick="backupFullDatabase()" id="btn_backup_db" class="hidden flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors group">
-                            <div class="w-8 h-8 rounded-lg bg-gray-800 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="fa-solid fa-database text-sm"></i>
+                        <div onclick="backupFullDatabase()" id="btn_backup_db" class="hidden flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors group">
+                            <div class="w-8 h-8 rounded-lg bg-gray-800 text-white flex items-center justify-center shrink-0 shadow-sm" style="background-color: #1f2937; color: #ffffff;">
+                                <i class="fa-solid fa-database text-sm" style="color: #ffffff;"></i>
                             </div>
                             <div class="flex-grow text-left">
                                 <h3 class="font-medium text-[16px] text-gray-900">สำรองข้อมูล (Backup)</h3>
@@ -2572,9 +2572,11 @@
                                 <button type="button" onclick="renderSettings()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-100 transition">
                                     ยกเลิก
                                 </button>
-                                <button type="button" id="btn_submit_batch" onclick="submitBatchBuilding()" class="w-full sm:w-auto px-7 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-plus-circle"></i>
-                                    <span id="lbl_submit_btn_text">สร้างตึกและห้องชุด</span>
+                                <button type="button" id="btn_submit_batch" onclick="submitBatchBuilding()" 
+                                        class="w-full sm:w-auto px-7 py-2.5 rounded-xl text-white text-sm font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2"
+                                        style="background-color: #4f46e5; background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff;">
+                                    <i class="fa-solid fa-plus-circle" style="color: #ffffff;"></i>
+                                    <span id="lbl_submit_btn_text" style="color: #ffffff;">สร้างตึกและห้องชุด</span>
                                 </button>
                             </div>
                         </div>
@@ -2898,7 +2900,11 @@
                             <span>กรุณาระบุ <b>ชื่อ/รหัสตึก</b> เพื่อให้ระบบสร้างเลขห้องอัตโนมัติ</span>
                         </div>
                     `;
-                    if (submitBtn) submitBtn.disabled = true;
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor = 'not-allowed';
+                    }
                     if (btnText) btnText.innerText = 'กรุณาระบุชื่อตึก';
                 } else if (rooms.length === 0) {
                     alertBox.innerHTML = `
@@ -2907,7 +2913,11 @@
                             <span>ยังไม่มีห้องที่จะถูกสร้าง กรุณาเปิดใช้งานอย่างน้อย 1 ชั้นที่มีจำนวนห้องมากกว่า 0</span>
                         </div>
                     `;
-                    if (submitBtn) submitBtn.disabled = true;
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor = 'not-allowed';
+                    }
                     if (btnText) btnText.innerText = 'ไม่มีห้องให้สร้าง';
                 } else if (duplicates.length > 0) {
                     const isAllDup = newRooms.length === 0;
@@ -2925,7 +2935,11 @@
                             </p>
                         </div>
                     `;
-                    if (submitBtn) submitBtn.disabled = isAllDup;
+                    if (submitBtn) {
+                        submitBtn.disabled = isAllDup;
+                        submitBtn.style.opacity = isAllDup ? '0.5' : '1';
+                        submitBtn.style.cursor = isAllDup ? 'not-allowed' : 'pointer';
+                    }
                     if (btnText) btnText.innerText = isAllDup ? 'ห้องทั้งหมดซ้ำในระบบ' : `สร้างเฉพาะห้องใหม่ (${newRooms.length} ห้อง)`;
                 } else {
                     alertBox.innerHTML = `
@@ -2934,7 +2948,11 @@
                             <span>พร้อมสร้าง: ตรวจสอบแล้วไม่มีเลขห้องซ้ำในโครงการ <b>${state.project}</b> (จะสร้างใหม่ทั้งหมด <b>${rooms.length} ห้อง</b>)</span>
                         </div>
                     `;
-                    if (submitBtn) submitBtn.disabled = false;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                    }
                     if (btnText) btnText.innerText = `สร้างตึก ${bldg} (ทั้งหมด ${rooms.length} ห้อง)`;
                 }
             }

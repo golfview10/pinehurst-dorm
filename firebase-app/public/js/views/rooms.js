@@ -32,7 +32,7 @@
                         <div class="flex items-center font-bold text-base text-gray-800">${backBtn}${title}</div>
                         <div class="flex space-x-1 items-center">
                              ${filterBuilding ? `<button onclick="renderBuildingFloors('${filterBuilding}')" class="bg-purple-600 text-white px-2.5 py-1 rounded hover:bg-purple-700 transition text-xs flex items-center gap-1 shadow-sm font-semibold" title="จัดผังห้อง & ใส่อีโมจิ"><i class="fa-solid fa-grip"></i><span class="hidden sm:inline">จัดผัง/อีโมจิ</span></button>` : ''}
-                             ${STATE.user && STATE.user.role === 'Admin' ? `<button onclick="renderSettingsBatchBuilding('${filterBuilding || ''}')" class="bg-indigo-600 text-white px-2.5 py-1 rounded hover:bg-indigo-700 transition text-xs flex items-center gap-1 shadow-sm font-semibold" title="สร้างตึกใหม่ / เพิ่มห้องชุด (Admin)"><i class="fa-solid fa-city"></i><span class="hidden sm:inline">สร้างตึก</span></button>` : ''}
+                             ${STATE.user && STATE.user.role === 'Admin' ? `<button onclick="renderSettingsBatchBuilding('${filterBuilding || ''}')" class="bg-indigo-600 text-white px-2.5 py-1 rounded hover:bg-indigo-700 transition text-xs flex items-center gap-1 shadow-sm font-semibold" style="background-color: #4f46e5; color: #ffffff;" title="สร้างตึกใหม่ / เพิ่มห้องชุด (Admin)"><i class="fa-solid fa-city" style="color: #ffffff;"></i><span class="hidden sm:inline">สร้างตึก</span></button>` : ''}
                              <button onclick="openReportModal()" class="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700 transition text-xs" title="พิมพ์รายงาน"><i class="fa-solid fa-print"></i></button>
                              <button onclick="openModal()" class="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition text-xs" title="เพิ่มห้องพัก"><i class="fa-solid fa-plus"></i></button>
                         </div>
@@ -545,17 +545,17 @@
                     ${STATE.user && STATE.user.role === 'Admin' ? `
                     <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3.5 mb-4 flex items-center justify-between gap-3 text-xs text-indigo-900 shadow-2xs">
                         <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                                <i class="fa-solid fa-city text-sm"></i>
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0" style="background-color: #4f46e5; color: #ffffff;">
+                                <i class="fa-solid fa-city text-sm" style="color: #ffffff;"></i>
                             </div>
                             <div>
                                 <p class="font-bold text-indigo-950 text-sm">ต้องการสร้างทั้งตึก หรือสร้างห้องพักเป็นชุด?</p>
                                 <p class="text-indigo-600">กำหนดจำนวนชั้นและจำนวนห้องในแต่ละชั้นได้ยืดหยุ่นในคราวเดียว</p>
                             </div>
                         </div>
-                        <button type="button" onclick="renderSettingsBatchBuilding()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-xs transition shrink-0 flex items-center gap-1.5">
+                        <button type="button" onclick="renderSettingsBatchBuilding()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-xs transition shrink-0 flex items-center gap-1.5" style="background-color: #4f46e5; color: #ffffff;">
                             <span>สร้างตึกใหม่</span>
-                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                            <i class="fa-solid fa-arrow-right text-xs" style="color: #ffffff;"></i>
                         </button>
                     </div>
                     ` : ''}
