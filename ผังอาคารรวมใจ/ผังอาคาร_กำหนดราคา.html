@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบผังอาคารมูลนิธิรวมใจพัฒนา — กำหนดราคาและขนาดห้อง</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, 'Sarabun', 'Noto Sans Thai', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      z-index: 30;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: #1e3a8a;
+      color: white;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .brand-text h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Floor Selector Tabs */
+    .floor-tabs {
+      display: flex;
+      gap: 4px;
+      background: #e2e8f0;
+      padding: 3px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .floor-btn {
+      padding: 6px 14px;
+      border: none;
+      background: transparent;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .floor-btn:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.7);
+    }
+
+    .floor-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 6px 11px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-outline { background: white; border-color: var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; }
+
+    .btn-magnet-active {
+      background: #eff6ff !important;
+      border-color: #3b82f6 !important;
+      color: #1d4ed8 !important;
+      font-weight: 700 !important;
+    }
+
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #15803d; }
+
+    .btn-sm { padding: 4px 7px; font-size: 11px; }
+
+    /* Main Workspace */
+    .workspace {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 57px);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Collapsible Sidebar */
+    .sidebar {
+      width: 340px;
+      background: #ffffff;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      box-shadow: 1px 0 4px rgba(0,0,0,0.03);
+      transition: margin-left 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s;
+      flex-shrink: 0;
+    }
+
+    .sidebar.collapsed {
+      margin-left: -340px;
+      box-shadow: none;
+    }
+
+    .sidebar-header {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #fafafa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating-expand-btn {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: #ffffff;
+      border: 1.5px solid #2563eb;
+      color: #1e40af;
+      padding: 7px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 28;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .floating-expand-btn:hover {
+      background: #eff6ff;
+      transform: translateY(-1px);
+    }
+    .floating-expand-btn.show {
+      display: flex;
+    }
+
+    /* Stats summary */
+    .stats-card {
+      margin: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .stat-item .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 1px;
+    }
+
+    .stat-item .stat-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e3a8a;
+    }
+
+    .stat-item.full-width {
+      grid-column: span 2;
+      border-top: 1px solid var(--border);
+      padding-top: 5px;
+      margin-top: 2px;
+    }
+
+    .stat-item.full-width .stat-val {
+      font-size: 16px;
+      color: #0f766e;
+    }
+
+    .search-box {
+      margin: 0 12px 6px 12px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+
+    .room-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 12px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .room-item {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .room-item:hover {
+      border-color: var(--primary);
+      background: #f8fafc;
+    }
+
+    .room-item.selected {
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+
+    .room-checkbox {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    .room-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .room-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .room-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge-status {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-weight: 600;
+    }
+    .status-available { background: #dcfce7; color: #15803d; }
+    .status-rented { background: #dbeafe; color: #1d4ed8; }
+    .status-reserved { background: #fef3c7; color: #b45309; }
+
+    .room-meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .room-price {
+      font-weight: 700;
+      color: #0d9488;
+    }
+
+    .room-actions {
+      display: flex;
+      gap: 3px;
+    }
+
+    .icon-btn {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 3px 5px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #334155;
+    }
+    .icon-btn:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+    }
+    .icon-btn-danger:hover {
+      background: #fee2e2;
+      border-color: #f87171;
+      color: #dc2626;
+    }
+
+    .add-room-card {
+      border: 2px dashed #93c5fd;
+      background: #eff6ff;
+      border-radius: 4px;
+      padding: 9px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1d4ed8;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .add-room-card:hover {
+      background: #dbeafe;
+      border-color: #3b82f6;
+    }
+
+    /* Plan View Area */
+    .viewport {
+      flex: 1;
+      background: #94a3b8;
+      position: relative;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      user-select: none;
+    }
+
+    .plan-container {
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      background: white;
+      transform-origin: center center;
+    }
+
+    .plan-img {
+      display: block;
+      width: 1400px;
+      max-width: none;
+      pointer-events: none;
+    }
+
+    .viewport-hint {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.88);
+      color: white;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      pointer-events: none;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    /* ========================================================
+       SHARP RECTANGULAR ROOM BOXES (ขอบเหลี่ยม ไม่โค้ง)
+       ======================================================== */
+    .room-box {
+      position: absolute;
+      border-radius: 0px !important;
+      border: 2px solid #2563eb;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      cursor: move;
+      padding: 3px;
+      overflow: hidden;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+
+    .room-box:hover {
+      z-index: 15 !important;
+      border-color: #1d4ed8;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+    }
+
+    .room-box.selected {
+      z-index: 20 !important;
+      border-color: #0f172a !important;
+      outline: 2px dashed #2563eb;
+      outline-offset: 1px;
+    }
+
+    .room-box.status-available {
+      border-color: #059669;
+      background: rgba(240, 253, 244, 0.88);
+    }
+    .room-box.status-available:hover {
+      background: rgba(240, 253, 244, 0.96);
+    }
+
+    .room-box.status-rented {
+      border-color: #2563eb;
+      background: rgba(239, 246, 255, 0.88);
+    }
+    .room-box.status-rented:hover {
+      background: rgba(239, 246, 255, 0.96);
+    }
+
+    .room-box.status-reserved {
+      border-color: #d97706;
+      background: rgba(254, 252, 232, 0.88);
+    }
+    .room-box.status-reserved:hover {
+      background: rgba(254, 252, 232, 0.96);
+    }
+
+    .box-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      line-height: 1.25;
+      padding: 1px;
+    }
+
+    .box-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 95%;
+      margin-bottom: 2px;
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      padding-bottom: 1px;
+    }
+
+    .box-area {
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .box-price {
+      font-size: 13px;
+      font-weight: 800;
+      color: #047857;
+      margin-top: 1px;
+    }
+
+    .status-rented .box-price { color: #1d4ed8; }
+    .status-reserved .box-price { color: #b45309; }
+
+    .box-edit-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--border);
+      border-radius: 0px !important;
+      font-size: 10px;
+      padding: 1px 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: auto;
+    }
+    .room-box:hover .box-edit-btn {
+      opacity: 1;
+    }
+    .box-edit-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    /* Resize Handles */
+    .resize-handle {
+      position: absolute;
+      background: #ffffff;
+      border: 1.5px solid #0f172a;
+      border-radius: 0px !important;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: auto;
+      transition: opacity 0.15s;
+    }
+
+    .room-box:hover .resize-handle,
+    .room-box.selected .resize-handle {
+      opacity: 1;
+    }
+
+    .handle-e {
+      right: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 7px;
+      height: 22px;
+      cursor: ew-resize;
+    }
+    .handle-s {
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 22px;
+      height: 7px;
+      cursor: ns-resize;
+    }
+    .handle-se {
+      right: -5px;
+      bottom: -5px;
+      width: 9px;
+      height: 9px;
+      background: #2563eb;
+      border-color: #ffffff;
+      cursor: nwse-resize;
+    }
+    .handle-w {
+      left: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 7px;
+      height: 22px;
+      cursor: ew-resize;
+    }
+    .handle-n {
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 22px;
+      height: 7px;
+      cursor: ns-resize;
+    }
+
+    /* ========================================================
+       MAGNETIC SNAPPING GUIDES (เส้นไกด์แม่เหล็กเวลาดูดติด)
+       ======================================================== */
+    .snap-guide-v {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #2563eb;
+      box-shadow: 0 0 6px #3b82f6;
+      z-index: 40;
+      pointer-events: none;
+      display: none;
+    }
+
+    .snap-guide-h {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #2563eb;
+      box-shadow: 0 0 6px #3b82f6;
+      z-index: 40;
+      pointer-events: none;
+      display: none;
+    }
+
+    /* Floating Zoom Controls */
+    .zoom-toolbar {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      gap: 2px;
+      padding: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 25;
+    }
+
+    .zoom-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    .zoom-btn:hover { background: #f1f5f9; }
+
+    /* Modal dialog */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 6px;
+      width: 490px;
+      max-width: 92vw;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+    }
+
+    .modal-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Preset Modules Buttons in Modal */
+    .preset-group {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .preset-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .preset-btn {
+      border: 1px solid var(--border);
+      background: white;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .preset-btn:hover {
+      background: #eff6ff;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .modal-footer {
+      padding: 12px 18px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #0f172a;
+      color: white;
+      padding: 9px 18px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 200;
+      transition: transform 0.25s ease;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Print Styles */
+    @media print {
+      header, .sidebar, .zoom-toolbar, .box-edit-btn, .resize-handle, .viewport-hint, .floating-expand-btn, .snap-guide-v, .snap-guide-h {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+        overflow: visible !important;
+        height: auto !important;
+      }
+      .workspace {
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .viewport {
+        background: white !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      .plan-container {
+        box-shadow: none !important;
+        transform: none !important;
+      }
+      .plan-img {
+        width: 100% !important;
+      }
+      .room-box {
+        background: rgba(255,255,255,0.7) !important;
+        border: 2px solid #000 !important;
+        box-shadow: none !important;
+      }
+      @page {
+        size: A3 landscape;
+        margin: 8mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">📐</div>
+      <div class="brand-text">
+        <h1>ผังอาคารมูลนิธิรวมใจพัฒนา</h1>
+        <p>ระบบกำหนดขนาดห้องและราคา (ขอบเหลี่ยม / ยืดหดได้ / แม่เหล็กดูดขอบ / พับเก็บเมนูได้)</p>
+      </div>
+    </div>
+
+    <!-- Floor Tabs -->
+    <div class="floor-tabs" id="floorTabs">
+      <button class="floor-btn" onclick="switchFloor(1)">ชั้นล่าง</button>
+      <button class="floor-btn active" onclick="switchFloor(2)">ชั้น 2</button>
+      <button class="floor-btn" onclick="switchFloor(3)">ชั้น 3</button>
+      <button class="floor-btn" onclick="switchFloor(4)">ชั้น 4</button>
+    </div>
+
+    <!-- Actions -->
+    <div class="header-actions">
+      <!-- Magnetic Snap Toggle Button -->
+      <button class="btn btn-outline btn-magnet-active" id="btnMagnetToggle" onclick="toggleMagnet()" title="เปิด/ปิดการเกาะติดเหมือนแม่เหล็ก (กด Shift ค้างไว้เพื่อเลื่อนอิสระชั่วคราวได้)">
+        🧲 แม่เหล็ก: เปิด
+      </button>
+
+      <button class="btn btn-primary" onclick="addNewRoom()" title="เพิ่มห้องใหม่ในชั้นนี้">
+        ➕ เพิ่มห้องใหม่
+      </button>
+      <button class="btn btn-outline" onclick="exportData()" title="ส่งออกไฟล์สำรอง">
+        📥 สำรองไฟล์ JSON
+      </button>
+      <button class="btn btn-outline" onclick="document.getElementById('importFile').click()" title="โหลดไฟล์สำรอง">
+        📤 โหลดไฟล์ JSON
+      </button>
+      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+      <button class="btn btn-outline" onclick="window.print()" title="พิมพ์หรือบันทึกเป็น PDF">
+        🖨️ พิมพ์ / บันทึก PDF
+      </button>
+      <button class="btn btn-success" onclick="saveData(true)" title="บันทึกราคาและขนาดปัจจุบัน">
+        💾 บันทึกแล้ว
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="workspace">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>
+          <span id="currentFloorTitle">แปลนพื้นชั้น 2</span>
+          <span style="font-size:11px; background:#e2e8f0; padding:1px 6px; border-radius:10px; color:#475569;" id="roomCountBadge">13 ห้อง</span>
+        </h3>
+        <!-- Collapse Button -->
+        <button class="btn btn-outline btn-sm" onclick="toggleSidebar()" title="พับเก็บแถบซ้ายนี้" style="padding:3px 8px; font-size:11px;">
+          ◀ พับเก็บ
+        </button>
+      </div>
+
+      <!-- Stats summary card -->
+      <div class="stats-card">
+        <div class="stat-item">
+          <div class="stat-label">ห้องที่เลือกแสดง</div>
+          <div class="stat-val" id="statVisibleRooms">13 / 13</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">พื้นที่รวม</div>
+          <div class="stat-val" id="statTotalArea">702 ตร.ม.</div>
+        </div>
+        <div class="stat-item full-width">
+          <div class="stat-label">รายได้รวมต่อเดือน (เฉพาะที่เปิดแสดง)</div>
+          <div class="stat-val" id="statTotalPrice">฿163,000</div>
+        </div>
+      </div>
+
+      <!-- Search Filter -->
+      <div class="search-box">
+        <input type="text" class="search-input" id="searchRoom" placeholder="🔍 ค้นหาห้องหรือราคา..." oninput="renderSidebar()">
+      </div>
+
+      <!-- Prominent Add Room Button in Sidebar -->
+      <div style="padding: 0 12px 6px 12px;">
+        <button class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 13px; padding: 7px 10px;" onclick="addNewRoom()">
+          ➕ เพิ่มห้องใหม่ (ในชั้นนี้)
+        </button>
+      </div>
+
+      <!-- Select All / Deselect All -->
+      <div style="padding: 0 12px 6px 12px; display: flex; justify-content: space-between; font-size: 11px;">
+        <span style="color:var(--text-muted);">เลือกห้องที่ต้องการให้แสดง:</span>
+        <div>
+          <a href="javascript:void(0)" onclick="toggleAllRooms(true)" style="color:var(--primary); text-decoration:none; margin-right:8px; font-weight:700;">แสดงทั้งหมด</a>
+          <a href="javascript:void(0)" onclick="toggleAllRooms(false)" style="color:var(--text-muted); text-decoration:none;">ซ่อนทั้งหมด</a>
+        </div>
+      </div>
+
+      <!-- Room Checklist -->
+      <div class="room-list" id="roomList">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Footer Reset -->
+      <div style="padding: 10px 12px; border-top: 1px solid var(--border); background: #fafafa; display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-outline btn-sm" onclick="resetToDefaults()" style="color:#dc2626; border-color:#fecaca;">
+          🔄 รีเซ็ตค่าเริ่มต้น
+        </button>
+        <span style="font-size: 11px; color: var(--text-muted);">
+          *ดับเบิ้ลคลิกบนผังเพื่อเพิ่มห้องได้
+        </span>
+      </div>
+    </aside>
+
+    <!-- Blueprint Viewport -->
+    <main class="viewport" id="viewport">
+      <!-- Floating Button to Expand Sidebar when Collapsed -->
+      <button class="floating-expand-btn" id="sidebarExpandBtn" onclick="toggleSidebar()" title="เปิดแถบรายการห้อง">
+        ▶ แสดงรายการห้อง (<span id="floatingRoomCount">13</span>)
+      </button>
+
+      <!-- Viewport Hint -->
+      <div class="viewport-hint">
+        <span>🧲 มีระบบแม่เหล็กดูดขอบอัตโนมัติ (กด Shift ค้างเพื่อเลื่อนอิสระ) | ดับเบิ้ลคลิกเพื่อเพิ่มห้อง</span>
+      </div>
+
+      <div class="plan-container" id="planContainer">
+        <img src="images/floor_2.png" id="planImg" class="plan-img" alt="ผังอาคาร">
+        
+        <!-- Magnetic Snapping Visual Guide Lines -->
+        <div id="snapGuideV" class="snap-guide-v"></div>
+        <div id="snapGuideH" class="snap-guide-h"></div>
+
+        <div id="markersLayer">
+          <!-- Room Boxes Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Zoom Floating Bar -->
+      <div class="zoom-toolbar">
+        <button class="zoom-btn" onclick="changeZoom(0.15)" title="ซูมเข้า">🔍+</button>
+        <button class="zoom-btn" onclick="changeZoom(-0.15)" title="ซูมออก">🔍-</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="ขนาดปกติ">100%</button>
+        <button class="zoom-btn" onclick="fitToWidth()" title="พอดีหน้าจอ">⛶</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Edit Room Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">แก้ไขข้อมูลห้องและขนาดกล่อง</h3>
+        <button class="btn btn-outline btn-sm" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editRoomId">
+        
+        <div class="form-group">
+          <label>ชื่อห้อง / รหัสห้อง</label>
+          <input type="text" class="form-control" id="editRoomName" placeholder="เช่น ห้องทำงาน 201, ห้องประชุม A">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ขนาดห้อง (ตร.ม.)</label>
+            <input type="number" step="0.1" class="form-control" id="editRoomArea" placeholder="เช่น 27">
+          </div>
+          <div class="form-group">
+            <label>ราคาเช่า (บาท / เดือน)</label>
+            <input type="number" class="form-control" id="editRoomPrice" placeholder="เช่น 6500">
+          </div>
+        </div>
+
+        <!-- Quick Module Presets for Combined Bays (ทุบรวม) -->
+        <div class="preset-group">
+          <div class="preset-label">
+            <span>📐 ขนาดกล่องตามช่องเสา (คลิกเพื่อปรับขนาดทันที):</span>
+          </div>
+          <div class="preset-buttons">
+            <button type="button" class="preset-btn" onclick="applyPreset(5.2, 9.7, 27)">1 ช่องเสา (27 ตร.ม.)</button>
+            <button type="button" class="preset-btn" onclick="applyPreset(10.4, 9.7, 54)">2 ช่องเสา ทุบรวม (54 ตร.ม.)</button>
+            <button type="button" class="preset-btn" onclick="applyPreset(15.6, 9.5, 81)">3 ช่องเสา ทุบรวม (81 ตร.ม.)</button>
+            <button type="button" class="preset-btn" onclick="applyPreset(20.8, 9.5, 108)">4 ช่องเสา ทุบรวม (108 ตร.ม.)</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ความกว้างกล่อง (% ของผัง)</label>
+            <input type="number" step="0.1" class="form-control" id="editRoomWidth" placeholder="เช่น 5.2">
+          </div>
+          <div class="form-group">
+            <label>ความยาว/สูงกล่อง (% ของผัง)</label>
+            <input type="number" step="0.1" class="form-control" id="editRoomHeight" placeholder="เช่น 9.7">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>สถานะ</label>
+            <select class="form-control" id="editRoomStatus">
+              <option value="available">ว่าง (พร้อมเช่า)</option>
+              <option value="rented">มีผู้เช่าแล้ว</option>
+              <option value="reserved">จองแล้ว</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>การแสดงผลบนผัง</label>
+            <select class="form-control" id="editRoomVisible">
+              <option value="true">แสดงบนผัง</option>
+              <option value="false">ซ่อนไว้</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>หมายเหตุ / ข้อมูลผู้เช่า</label>
+          <input type="text" class="form-control" id="editRoomNote" placeholder="เช่น ทุบรวม 2 ห้อง, สัญญาเช่าถึงสิ้นปี">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-outline" style="color:var(--danger); border-color:#fecaca;" onclick="deleteRoomFromModal()">
+            🗑️ ลบห้องนี้
+          </button>
+          <button class="btn btn-outline" onclick="duplicateRoomFromModal()" title="คัดลอกสร้างเป็นห้องใหม่">
+            📋 คัดลอกห้อง
+          </button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+          <button class="btn btn-primary" onclick="saveRoomFromModal()">บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span>✅</span>
+    <span id="toastMsg">บันทึกข้อมูลเรียบร้อยแล้ว</span>
+  </div>
+
+  <script>
+    // Initial Default Data with Exact Bay Dimensions
+    const defaultData = {
+      1: {
+        name: "แปลนพื้นชั้นล่าง",
+        image: "images/floor_1.png",
+        rooms: [
+          { id: "f1_1", name: "เคาน์เตอร์ต้อนรับ", area: 25, price: 4500, status: "available", visible: true, left: 16.5, top: 29.5, width: 9.8, height: 9.5, note: "จุดต้อนรับและประชาสัมพันธ์" },
+          { id: "f1_2", name: "ห้องทำงานชั้นล่าง 1", area: 54, price: 12000, status: "available", visible: true, left: 58.4, top: 38.0, width: 10.4, height: 9.5, note: "ทุบรวม 2 ช่องเสา" },
+          { id: "f1_3", name: "ห้องทำงานชั้นล่าง 2", area: 54, price: 12000, status: "available", visible: true, left: 68.8, top: 38.0, width: 10.4, height: 9.5, note: "ทุบรวม 2 ช่องเสา" },
+          { id: "f1_4", name: "โถงกิจกรรมอเนกประสงค์", area: 300, price: 35000, status: "available", visible: true, left: 27.0, top: 48.0, width: 31.0, height: 18.8, note: "พื้นที่ส่วนกลางชั้นล่าง" },
+          { id: "f1_5", name: "พื้นที่เช่าร้านค้า / คาเฟ่", area: 40, price: 8500, status: "available", visible: true, left: 42.8, top: 28.5, width: 15.6, height: 9.5, note: "พื้นที่ค้าขาย" }
+        ]
+      },
+      2: {
+        name: "แปลนพื้นชั้น 2",
+        image: "images/floor_2.png",
+        rooms: [
+          { id: "f2_1", name: "ห้องประชุม 201", area: 81, price: 15000, status: "available", visible: true, left: 11.6, top: 28.4, width: 15.6, height: 9.5, note: "3 ช่องเสา (13.5 x 6.0 ม.)" },
+          { id: "f2_2", name: "ห้องประชุม 202", area: 81, price: 15000, status: "available", visible: true, left: 11.6, top: 37.9, width: 15.6, height: 9.5, note: "3 ช่องเสา (13.5 x 6.0 ม.)" },
+          { id: "f2_3", name: "ห้องประชุม 203", area: 81, price: 15000, status: "available", visible: true, left: 42.8, top: 28.4, width: 15.6, height: 9.5, note: "3 ช่องเสา (13.5 x 6.0 ม.)" },
+          { id: "f2_4", name: "ห้องประชุม 204", area: 81, price: 15000, status: "available", visible: true, left: 42.8, top: 37.9, width: 15.6, height: 9.5, note: "3 ช่องเสา (13.5 x 6.0 ม.)" },
+          { id: "f2_5", name: "ห้องรับรอง 1", area: 54, price: 12000, status: "available", visible: true, left: 58.4, top: 37.9, width: 10.4, height: 9.5, note: "2 ช่องเสาทุบรวม (9.0 x 6.0 ม.)" },
+          { id: "f2_6", name: "ห้องรับรอง 2", area: 54, price: 12000, status: "available", visible: true, left: 68.8, top: 37.9, width: 10.4, height: 9.5, note: "2 ช่องเสาทุบรวม (9.0 x 6.0 ม.)" },
+          { id: "f2_7", name: "ห้องพักผ่อน VIP", area: 54, price: 16000, status: "available", visible: true, left: 79.2, top: 37.9, width: 10.4, height: 9.5, note: "2 ช่องเสา พร้อมห้องน้ำในตัว" },
+          { id: "f2_8",  name: "ห้องทำงาน 201", area: 27, price: 6500, status: "available", visible: true, left: 32.4, top: 57.3, width: 5.2, height: 9.7, note: "1 ช่องเสา (4.5 x 6.0 ม.)" },
+          { id: "f2_9",  name: "ห้องทำงาน 202", area: 27, price: 6500, status: "available", visible: true, left: 37.6, top: 57.3, width: 5.2, height: 9.7, note: "1 ช่องเสา (4.5 x 6.0 ม.)" },
+          { id: "f2_10", name: "ห้องทำงาน 203", area: 27, price: 6500, status: "available", visible: true, left: 42.8, top: 57.3, width: 5.2, height: 9.7, note: "1 ช่องเสา (4.5 x 6.0 ม.)" },
+          { id: "f2_11", name: "ห้องทำงาน 204", area: 27, price: 6500, status: "available", visible: true, left: 48.0, top: 57.3, width: 5.2, height: 9.7, note: "1 ช่องเสา (4.5 x 6.0 ม.)" },
+          { id: "f2_12", name: "ห้องทำงาน 205", area: 27, price: 6500, status: "available", visible: true, left: 53.2, top: 57.3, width: 5.2, height: 9.7, note: "1 ช่องเสา (4.5 x 6.0 ม.)" },
+          { id: "f2_13", name: "ห้องทำงาน 206", area: 27, price: 6500, status: "available", visible: true, left: 58.4, top: 57.3, width: 5.2, height: 9.7, note: "1 ช่องเสา (4.5 x 6.0 ม.)" }
+        ]
+      },
+      3: {
+        name: "แปลนพื้นชั้น 3",
+        image: "images/floor_3.png",
+        rooms: [
+          { id: "f3_1", name: "พื้นที่เช่าเหมาทั้งชั้น 3", area: 800, price: 80000, status: "available", visible: true, left: 11.6, top: 28.4, width: 78.0, height: 38.6, note: "พื้นที่เปิดโล่งทั้งฟลอร์" },
+          { id: "f3_2", name: "พื้นที่เช่า โซน A (ตะวันตก)", area: 400, price: 45000, status: "available", visible: false, left: 11.6, top: 28.4, width: 39.0, height: 38.6, note: "แบ่งครึ่งฟลอร์ฝั่งตะวันตก" },
+          { id: "f3_3", name: "พื้นที่เช่า โซน B (ตะวันออก)", area: 400, price: 45000, status: "available", visible: false, left: 50.6, top: 28.4, width: 39.0, height: 38.6, note: "แบ่งครึ่งฟลอร์ฝั่งตะวันออก" }
+        ]
+      },
+      4: {
+        name: "แปลนพื้นชั้น 4",
+        image: "images/floor_4.png",
+        rooms: [
+          { id: "f4_1", name: "พื้นที่เช่าเหมาทั้งชั้น 4", area: 800, price: 70000, status: "available", visible: true, left: 11.6, top: 28.4, width: 78.0, height: 38.6, note: "พื้นที่เปิดโล่งทั้งฟลอร์" },
+          { id: "f4_2", name: "พื้นที่ป้ายโฆษณาหน้าอาคาร", area: 60, price: 25000, status: "available", visible: true, left: 89.2, top: 28.4, width: 1.5, height: 38.6, note: "โครงเหล็กป้ายหน้าอาคาร" }
+        ]
+      }
+    };
+
+    // Structural Column and Row Lines for Magnetic Snapping
+    const GRID_COLS = [11.6, 16.8, 22.0, 27.2, 32.4, 37.6, 42.8, 48.0, 53.2, 58.4, 63.6, 68.8, 74.0, 79.2, 84.4, 89.6];
+    const GRID_ROWS = [28.4, 37.9, 47.4, 57.3, 67.0];
+    const SNAP_THRESHOLD = 0.85; // Percentage threshold for magnetic attraction (~12px)
+
+    // State
+    const STORAGE_KEY = 'pinehurst_dorm_pricing_data_v2';
+    let currentFloor = 2;
+    let dormData = loadData();
+    let currentZoom = 1.0;
+    let selectedRoomId = null;
+    let isSidebarCollapsed = false;
+    let isMagnetEnabled = true;
+
+    // Load Data
+    function loadData() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed[1] && parsed[2]) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse localStorage:', e);
+      }
+      return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    // Save Data
+    function saveData(showToastNotice = false) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dormData));
+        if (showToastNotice) {
+          showToast("💾 บันทึกราคาและข้อมูลปัจจุบันเรียบร้อยแล้ว");
+        }
+      } catch (e) {
+        console.error('Save failed:', e);
+      }
+    }
+
+    // Toggle Magnet Snapping
+    function toggleMagnet() {
+      isMagnetEnabled = !isMagnetEnabled;
+      const btn = document.getElementById('btnMagnetToggle');
+      if (isMagnetEnabled) {
+        btn.classList.add('btn-magnet-active');
+        btn.innerHTML = '🧲 แม่เหล็ก: เปิด';
+        showToast("🧲 เปิดระบบแม่เหล็ก: กล่องจะดูดเกาะติดขอบห้องข้างๆ อัตโนมัติ");
+      } else {
+        btn.classList.remove('btn-magnet-active');
+        btn.innerHTML = '🧲 แม่เหล็ก: ปิด';
+        showToast("เลื่อนอิสระ: ปิดการดูดติดแม่เหล็กแล้ว");
+      }
+    }
+
+    // Toggle Sidebar
+    function toggleSidebar() {
+      isSidebarCollapsed = !isSidebarCollapsed;
+      const sidebar = document.getElementById('sidebar');
+      const expandBtn = document.getElementById('sidebarExpandBtn');
+
+      if (isSidebarCollapsed) {
+        sidebar.classList.add('collapsed');
+        expandBtn.classList.add('show');
+        showToast("◀ พับเก็บแถบซ้ายแล้ว (คลิกปุ่มเปิดที่มุมซ้ายบนเพื่อกางออก)");
+      } else {
+        sidebar.classList.remove('collapsed');
+        expandBtn.classList.remove('show');
+      }
+    }
+
+    // Switch floor
+    function switchFloor(floorNum) {
+      currentFloor = floorNum;
+      
+      document.querySelectorAll('.floor-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx + 1 === floorNum);
+      });
+
+      const floor = dormData[floorNum];
+      document.getElementById('planImg').src = floor.image;
+      document.getElementById('currentFloorTitle').textContent = floor.name;
+
+      renderAll();
+    }
+
+    // Render All
+    function renderAll() {
+      renderSidebar();
+      renderMarkers();
+      updateStats();
+    }
+
+    // Render Sidebar List
+    function renderSidebar() {
+      const floor = dormData[currentFloor];
+      const search = document.getElementById('searchRoom').value.toLowerCase().trim();
+      const listContainer = document.getElementById('roomList');
+      listContainer.innerHTML = '';
+
+      const rooms = floor.rooms.filter(r => {
+        if (!search) return true;
+        return r.name.toLowerCase().includes(search) ||
+               (r.note && r.note.toLowerCase().includes(search)) ||
+               r.price.toString().includes(search);
+      });
+
+      document.getElementById('roomCountBadge').textContent = `${rooms.length} ห้อง`;
+      const floatingCount = document.getElementById('floatingRoomCount');
+      if (floatingCount) floatingCount.textContent = rooms.length;
+
+      rooms.forEach(room => {
+        const item = document.createElement('div');
+        item.className = `room-item ${selectedRoomId === room.id ? 'selected' : ''}`;
+        
+        let statusBadge = '';
+        if (room.status === 'available') statusBadge = '<span class="badge-status status-available">ว่าง</span>';
+        else if (room.status === 'rented') statusBadge = '<span class="badge-status status-rented">เช่าแล้ว</span>';
+        else if (room.status === 'reserved') statusBadge = '<span class="badge-status status-reserved">จองแล้ว</span>';
+
+        item.innerHTML = `
+          <input type="checkbox" class="room-checkbox" ${room.visible ? 'checked' : ''} onclick="event.stopPropagation(); toggleRoomVisibility('${room.id}', this.checked)">
+          <div class="room-info" onclick="selectAndHighlightRoom('${room.id}')">
+            <div class="room-title-row">
+              <span class="room-name">${room.name}</span>
+              ${statusBadge}
+            </div>
+            <div class="room-meta-row">
+              <span>${room.area} ตร.ม.</span>
+              <span class="room-price">฿${room.price.toLocaleString()}</span>
+            </div>
+          </div>
+          <div class="room-actions">
+            <button class="icon-btn" title="แก้ไข" onclick="event.stopPropagation(); openEditModal('${room.id}')">✏️</button>
+            <button class="icon-btn" title="คัดลอกห้องนี้" onclick="event.stopPropagation(); duplicateRoom('${room.id}')">📋</button>
+            <button class="icon-btn icon-btn-danger" title="ลบห้องนี้" onclick="event.stopPropagation(); deleteRoomDirect('${room.id}')">🗑️</button>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      });
+
+      const addBottomCard = document.createElement('div');
+      addBottomCard.className = 'add-room-card';
+      addBottomCard.innerHTML = '➕ คลิกเพื่อเพิ่มห้องใหม่ในชั้นนี้';
+      addBottomCard.onclick = () => addNewRoom();
+      listContainer.appendChild(addBottomCard);
+    }
+
+    // Select and highlight room
+    function selectAndHighlightRoom(roomId) {
+      selectedRoomId = roomId;
+      document.querySelectorAll('.room-box').forEach(el => el.classList.remove('selected'));
+      const target = document.getElementById(`box_${roomId}`);
+      if (target) {
+        target.classList.add('selected');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+      renderSidebar();
+    }
+
+    // Render Sharp Rectangular Room Boxes on Blueprint
+    function renderMarkers() {
+      const floor = dormData[currentFloor];
+      const layer = document.getElementById('markersLayer');
+      layer.innerHTML = '';
+
+      floor.rooms.forEach(room => {
+        if (!room.visible) return;
+
+        const width = room.width || 5.2;
+        const height = room.height || 9.7;
+        const left = room.left || 30.0;
+        const top = room.top || 30.0;
+
+        const box = document.createElement('div');
+        box.className = `room-box status-${room.status} ${selectedRoomId === room.id ? 'selected' : ''}`;
+        box.id = `box_${room.id}`;
+        box.style.left = `${left}%`;
+        box.style.top = `${top}%`;
+        box.style.width = `${width}%`;
+        box.style.height = `${height}%`;
+
+        box.innerHTML = `
+          <button class="box-edit-btn" onclick="openEditModal('${room.id}')" title="แก้ไขข้อมูล">✏️</button>
+          <div class="box-content">
+            <div class="box-name" title="${room.name}">${room.name}</div>
+            <div class="box-area">${room.area} ตร.ม.</div>
+            <div class="box-price">฿${room.price.toLocaleString()}</div>
+          </div>
+          <!-- Resize Handles -->
+          <div class="resize-handle handle-e" data-handle="e"></div>
+          <div class="resize-handle handle-s" data-handle="s"></div>
+          <div class="resize-handle handle-se" data-handle="se"></div>
+          <div class="resize-handle handle-w" data-handle="w"></div>
+          <div class="resize-handle handle-n" data-handle="n"></div>
+        `;
+
+        setupInteractiveBox(box, room);
+        layer.appendChild(box);
+      });
+    }
+
+    // Update Stats Summary
+    function updateStats() {
+      const floor = dormData[currentFloor];
+      const visibleRooms = floor.rooms.filter(r => r.visible);
+      
+      const totalRooms = floor.rooms.length;
+      const totalVisible = visibleRooms.length;
+      const totalArea = visibleRooms.reduce((sum, r) => sum + (Number(r.area) || 0), 0);
+      const totalPrice = visibleRooms.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
+
+      document.getElementById('statVisibleRooms').textContent = `${totalVisible} / ${totalRooms}`;
+      document.getElementById('statTotalArea').textContent = `${totalArea.toFixed(1)} ตร.ม.`;
+      document.getElementById('statTotalPrice').textContent = `฿${totalPrice.toLocaleString()}`;
+    }
+
+    // Toggle Room Visibility
+    function toggleRoomVisibility(roomId, isVisible) {
+      const floor = dormData[currentFloor];
+      const room = floor.rooms.find(r => r.id === roomId);
+      if (room) {
+        room.visible = isVisible;
+        saveData();
+        renderAll();
+      }
+    }
+
+    // Toggle All Rooms
+    function toggleAllRooms(status) {
+      const floor = dormData[currentFloor];
+      floor.rooms.forEach(r => r.visible = status);
+      saveData();
+      renderAll();
+      showToast(status ? "แสดงห้องทั้งหมดแล้ว" : "ซ่อนห้องทั้งหมดแล้ว");
+    }
+
+    // ========================================================
+    // MAGNETIC SNAPPING LOGIC (ดูดขอบห้องและเสาเหมือนแม่เหล็ก)
+    // ========================================================
+    function calculateMagneticSnap(currentRoom, proposedLeft, proposedTop, proposedWidth, proposedHeight, mode, bypassSnap = false) {
+      if (!isMagnetEnabled || bypassSnap) {
+        hideSnapGuides();
+        return { left: proposedLeft, top: proposedTop, width: proposedWidth, height: proposedHeight };
+      }
+
+      let left = proposedLeft;
+      let top = proposedTop;
+      let width = proposedWidth;
+      let height = proposedHeight;
+
+      let snappedGuideX = null;
+      let snappedGuideY = null;
+
+      const floor = dormData[currentFloor];
+      // Other rooms visible on the same floor
+      const others = floor.rooms.filter(r => r.id !== currentRoom.id && r.visible);
+
+      // Collect vertical edges (X positions) to snap to
+      const targetXs = [];
+      others.forEach(o => {
+        const oL = o.left || 0;
+        const oW = o.width || 5.2;
+        targetXs.push(oL);          // other's left edge
+        targetXs.push(oL + oW);     // other's right edge
+      });
+      GRID_COLS.forEach(c => targetXs.push(c)); // Grid columns
+
+      // Collect horizontal edges (Y positions) to snap to
+      const targetYs = [];
+      others.forEach(o => {
+        const oT = o.top || 0;
+        const oH = o.height || 9.7;
+        targetYs.push(oT);          // other's top edge
+        targetYs.push(oT + oH);     // other's bottom edge
+      });
+      GRID_ROWS.forEach(r => targetYs.push(r)); // Grid rows
+
+      if (mode === 'move') {
+        const currentRight = left + width;
+        const currentBottom = top + height;
+
+        // X-axis snapping
+        let minDiffX = SNAP_THRESHOLD;
+        let bestLeft = left;
+
+        targetXs.forEach(tx => {
+          // 1. My Left edge snaps to Target X (ติดขอบขวาของห้องข้างๆ หรือแนวเดียวกัน)
+          const diffL = Math.abs(left - tx);
+          if (diffL < minDiffX) {
+            minDiffX = diffL;
+            bestLeft = tx;
+            snappedGuideX = tx;
+          }
+
+          // 2. My Right edge snaps to Target X (ติดขอบซ้ายของห้องข้างๆ)
+          const diffR = Math.abs(currentRight - tx);
+          if (diffR < minDiffX) {
+            minDiffX = diffR;
+            bestLeft = tx - width;
+            snappedGuideX = tx;
+          }
+        });
+        left = bestLeft;
+
+        // Y-axis snapping
+        let minDiffY = SNAP_THRESHOLD;
+        let bestTop = top;
+
+        targetYs.forEach(ty => {
+          // 1. My Top edge snaps to Target Y (ติดขอบล่างของห้องข้างบน)
+          const diffT = Math.abs(top - ty);
+          if (diffT < minDiffY) {
+            minDiffY = diffT;
+            bestTop = ty;
+            snappedGuideY = ty;
+          }
+
+          // 2. My Bottom edge snaps to Target Y (ติดขอบบนของห้องข้างล่าง)
+          const diffB = Math.abs(currentBottom - ty);
+          if (diffB < minDiffY) {
+            minDiffY = diffB;
+            bestTop = ty - height;
+            snappedGuideY = ty;
+          }
+        });
+        top = bestTop;
+      } 
+      else {
+        // Resizing snapping
+        if (mode === 'e' || mode === 'se') {
+          const proposedRight = left + width;
+          let minDiff = SNAP_THRESHOLD;
+          targetXs.forEach(tx => {
+            const diff = Math.abs(proposedRight - tx);
+            if (diff < minDiff && tx > left + 2.0) {
+              minDiff = diff;
+              width = tx - left;
+              snappedGuideX = tx;
+            }
+          });
+        }
+
+        if (mode === 's' || mode === 'se') {
+          const proposedBottom = top + height;
+          let minDiff = SNAP_THRESHOLD;
+          targetYs.forEach(ty => {
+            const diff = Math.abs(proposedBottom - ty);
+            if (diff < minDiff && ty > top + 2.5) {
+              minDiff = diff;
+              height = ty - top;
+              snappedGuideY = ty;
+            }
+          });
+        }
+
+        if (mode === 'w') {
+          let minDiff = SNAP_THRESHOLD;
+          targetXs.forEach(tx => {
+            const diff = Math.abs(left - tx);
+            if (diff < minDiff && (left + width - tx) >= 2.0) {
+              minDiff = diff;
+              width = (left + width) - tx;
+              left = tx;
+              snappedGuideX = tx;
+            }
+          });
+        }
+
+        if (mode === 'n') {
+          let minDiff = SNAP_THRESHOLD;
+          targetYs.forEach(ty => {
+            const diff = Math.abs(top - ty);
+            if (diff < minDiff && (top + height - ty) >= 2.5) {
+              minDiff = diff;
+              height = (top + height) - ty;
+              top = ty;
+              snappedGuideY = ty;
+            }
+          });
+        }
+      }
+
+      // Display visual snap guidelines
+      showSnapGuides(snappedGuideX, snappedGuideY);
+
+      return { left, top, width, height };
+    }
+
+    // Show/Hide Magnetic Guidelines
+    function showSnapGuides(x, y) {
+      const gV = document.getElementById('snapGuideV');
+      const gH = document.getElementById('snapGuideH');
+
+      if (x !== null) {
+        gV.style.left = `${x}%`;
+        gV.style.display = 'block';
+      } else {
+        gV.style.display = 'none';
+      }
+
+      if (y !== null) {
+        gH.style.top = `${y}%`;
+        gH.style.display = 'block';
+      } else {
+        gH.style.display = 'none';
+      }
+    }
+
+    function hideSnapGuides() {
+      const gV = document.getElementById('snapGuideV');
+      const gH = document.getElementById('snapGuideH');
+      if (gV) gV.style.display = 'none';
+      if (gH) gH.style.display = 'none';
+    }
+
+    // Interactive Dragging and Resizing with Magnetic Snapping
+    function setupInteractiveBox(box, room) {
+      let isInteracting = false;
+      let mode = null;
+      let startX = 0, startY = 0;
+      let initialLeft = 0, initialTop = 0, initialWidth = 0, initialHeight = 0;
+      let hasMoved = false;
+
+      box.addEventListener('pointerdown', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+
+        const handleType = e.target.getAttribute('data-handle');
+        mode = handleType || 'move';
+        isInteracting = true;
+        hasMoved = false;
+
+        startX = e.clientX;
+        startY = e.clientY;
+
+        initialLeft = parseFloat(box.style.left);
+        initialTop = parseFloat(box.style.top);
+        initialWidth = parseFloat(box.style.width);
+        initialHeight = parseFloat(box.style.height);
+
+        selectedRoomId = room.id;
+        document.querySelectorAll('.room-box').forEach(el => el.classList.remove('selected'));
+        box.classList.add('selected');
+
+        box.setPointerCapture(e.pointerId);
+        e.stopPropagation();
+      });
+
+      box.addEventListener('pointermove', (e) => {
+        if (!isInteracting) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          hasMoved = true;
+        }
+
+        const container = document.getElementById('planContainer');
+        const rect = container.getBoundingClientRect();
+
+        const dxPct = (dx / rect.width) * 100;
+        const dyPct = (dy / rect.height) * 100;
+
+        let proposedLeft = initialLeft;
+        let proposedTop = initialTop;
+        let proposedWidth = initialWidth;
+        let proposedHeight = initialHeight;
+
+        if (mode === 'move') {
+          proposedLeft = Math.max(0, Math.min(100 - initialWidth, initialLeft + dxPct));
+          proposedTop = Math.max(0, Math.min(100 - initialHeight, initialTop + dyPct));
+        } else {
+          if (mode === 'e' || mode === 'se') {
+            proposedWidth = Math.max(2.0, initialWidth + dxPct);
+          }
+          if (mode === 's' || mode === 'se') {
+            proposedHeight = Math.max(2.5, initialHeight + dyPct);
+          }
+          if (mode === 'w') {
+            const potentialWidth = initialWidth - dxPct;
+            if (potentialWidth >= 2.0) {
+              proposedWidth = potentialWidth;
+              proposedLeft = initialLeft + dxPct;
+            }
+          }
+          if (mode === 'n') {
+            const potentialHeight = initialHeight - dyPct;
+            if (potentialHeight >= 2.5) {
+              proposedHeight = potentialHeight;
+              proposedTop = initialTop + dyPct;
+            }
+          }
+        }
+
+        // Apply Magnetic Snapping (Bypass if Shift key is pressed)
+        const snapped = calculateMagneticSnap(
+          room, 
+          proposedLeft, 
+          proposedTop, 
+          proposedWidth, 
+          proposedHeight, 
+          mode, 
+          e.shiftKey
+        );
+
+        box.style.left = `${snapped.left.toFixed(2)}%`;
+        box.style.top = `${snapped.top.toFixed(2)}%`;
+        box.style.width = `${snapped.width.toFixed(2)}%`;
+        box.style.height = `${snapped.height.toFixed(2)}%`;
+
+        room.left = parseFloat(snapped.left.toFixed(2));
+        room.top = parseFloat(snapped.top.toFixed(2));
+        room.width = parseFloat(snapped.width.toFixed(2));
+        room.height = parseFloat(snapped.height.toFixed(2));
+      });
+
+      box.addEventListener('pointerup', (e) => {
+        if (!isInteracting) return;
+        isInteracting = false;
+        hideSnapGuides();
+        try { box.releasePointerCapture(e.pointerId); } catch(err){}
+
+        if (hasMoved) {
+          saveData();
+          updateStats();
+        } else if (mode === 'move') {
+          openEditModal(room.id);
+        }
+      });
+    }
+
+    // Apply Preset Dimensions in Modal
+    function applyPreset(w, h, area) {
+      document.getElementById('editRoomWidth').value = w;
+      document.getElementById('editRoomHeight').value = h;
+      document.getElementById('editRoomArea').value = area;
+    }
+
+    // Generate Smart Next Room Name
+    function generateNextRoomName(floor) {
+      let maxNum = 0;
+      floor.rooms.forEach(r => {
+        const match = r.name.match(/\d+/);
+        if (match) {
+          const num = parseInt(match[0]);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+
+      if (maxNum > 0) {
+        return `ห้องทำงาน ${maxNum + 1}`;
+      }
+      return `ห้องใหม่ ${floor.rooms.length + 1}`;
+    }
+
+    // Add New Room Box
+    function addNewRoom(customLeft = null, customTop = null) {
+      const floor = dormData[currentFloor];
+      const newId = `room_${Date.now()}`;
+      const smartName = generateNextRoomName(floor);
+
+      const newRoom = {
+        id: newId,
+        name: smartName,
+        area: 27,
+        price: 6500,
+        status: "available",
+        visible: true,
+        left: customLeft !== null ? customLeft : 42.8,
+        top: customTop !== null ? customTop : 48.0,
+        width: 5.2,
+        height: 9.7,
+        note: ""
+      };
+
+      floor.rooms.push(newRoom);
+      saveData();
+      renderAll();
+      openEditModal(newId);
+      showToast(`➕ เพิ่ม "${smartName}" เรียบร้อยแล้ว (สามารถแก้ไขชื่อและราคาได้ทันที)`);
+    }
+
+    // Duplicate an Existing Room
+    function duplicateRoom(roomId) {
+      const floor = dormData[currentFloor];
+      const room = floor.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      const newId = `room_${Date.now()}`;
+      const newRoom = JSON.parse(JSON.stringify(room));
+      newRoom.id = newId;
+
+      const match = room.name.match(/(\d+)$/);
+      if (match) {
+        const nextNum = parseInt(match[1]) + 1;
+        newRoom.name = room.name.replace(/\d+$/, nextNum);
+      } else {
+        newRoom.name = `${room.name} (สำเนา)`;
+      }
+
+      // Offset position directly snapped to the right of the duplicated room
+      newRoom.left = Math.min(94, (room.left || 40) + (room.width || 5.2));
+      newRoom.top = room.top || 48;
+      newRoom.visible = true;
+
+      floor.rooms.push(newRoom);
+      saveData();
+      renderAll();
+      selectAndHighlightRoom(newId);
+      showToast(`📋 คัดลอกสร้าง "${newRoom.name}" สำเร็จแล้ว`);
+    }
+
+    function duplicateRoomFromModal() {
+      const roomId = document.getElementById('editRoomId').value;
+      closeModal();
+      duplicateRoom(roomId);
+    }
+
+    // Delete Room directly from sidebar
+    function deleteRoomDirect(roomId) {
+      const floor = dormData[currentFloor];
+      const room = floor.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      if (!confirm(`คุณต้องการลบ "${room.name}" ใช่หรือไม่?`)) return;
+
+      floor.rooms = floor.rooms.filter(r => r.id !== roomId);
+      saveData();
+      renderAll();
+      showToast(`🗑️ ลบ "${room.name}" เรียบร้อย`);
+    }
+
+    // Modal Operations
+    function openEditModal(roomId) {
+      selectedRoomId = roomId;
+      const floor = dormData[currentFloor];
+      const room = floor.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      document.getElementById('editRoomId').value = room.id;
+      document.getElementById('editRoomName').value = room.name;
+      document.getElementById('editRoomArea').value = room.area;
+      document.getElementById('editRoomPrice').value = room.price;
+      document.getElementById('editRoomWidth').value = (room.width || 5.2).toFixed(1);
+      document.getElementById('editRoomHeight').value = (room.height || 9.7).toFixed(1);
+      document.getElementById('editRoomStatus').value = room.status;
+      document.getElementById('editRoomVisible').value = room.visible ? "true" : "false";
+      document.getElementById('editRoomNote').value = room.note || "";
+      document.getElementById('modalTitle').textContent = `แก้ไขข้อมูล: ${room.name}`;
+
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').classList.remove('active');
+      selectedRoomId = null;
+    }
+
+    function saveRoomFromModal() {
+      const roomId = document.getElementById('editRoomId').value;
+      const floor = dormData[currentFloor];
+      const room = floor.rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      room.name = document.getElementById('editRoomName').value.trim() || room.name;
+      room.area = parseFloat(document.getElementById('editRoomArea').value) || 0;
+      room.price = parseInt(document.getElementById('editRoomPrice').value) || 0;
+      room.width = parseFloat(document.getElementById('editRoomWidth').value) || (room.width || 5.2);
+      room.height = parseFloat(document.getElementById('editRoomHeight').value) || (room.height || 9.7);
+      room.status = document.getElementById('editRoomStatus').value;
+      room.visible = document.getElementById('editRoomVisible').value === "true";
+      room.note = document.getElementById('editRoomNote').value.trim();
+
+      saveData();
+      closeModal();
+      renderAll();
+      showToast("💾 บันทึกข้อมูลและขนาดห้องเรียบร้อย");
+    }
+
+    function deleteRoomFromModal() {
+      const roomId = document.getElementById('editRoomId').value;
+      const floor = dormData[currentFloor];
+      const room = floor.rooms.find(r => r.id === roomId);
+      const name = room ? room.name : "ห้องนี้";
+
+      if (!confirm(`คุณต้องการลบ "${name}" ใช่หรือไม่?`)) return;
+
+      floor.rooms = floor.rooms.filter(r => r.id !== roomId);
+      
+      saveData();
+      closeModal();
+      renderAll();
+      showToast(`🗑️ ลบ "${name}" เรียบร้อย`);
+    }
+
+    // Double-Click on Plan Container to Add Room at Click Location
+    function setupPlanDblClick() {
+      const planContainer = document.getElementById('planContainer');
+      planContainer.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.room-box')) return;
+
+        const rect = planContainer.getBoundingClientRect();
+        const clickXPct = ((e.clientX - rect.left) / rect.width) * 100;
+        const clickYPct = ((e.clientY - rect.top) / rect.height) * 100;
+
+        const posX = Math.max(2, Math.min(94, parseFloat(clickXPct.toFixed(1))));
+        const posY = Math.max(2, Math.min(90, parseFloat(clickYPct.toFixed(1))));
+
+        addNewRoom(posX, posY);
+      });
+    }
+
+    // Zoom Controls
+    function changeZoom(delta) {
+      currentZoom = Math.max(0.4, Math.min(2.5, currentZoom + delta));
+      applyZoom();
+    }
+
+    function resetZoom() {
+      currentZoom = 1.0;
+      applyZoom();
+    }
+
+    function fitToWidth() {
+      const viewport = document.getElementById('viewport');
+      const containerWidth = 1400;
+      currentZoom = Math.max(0.4, (viewport.clientWidth - 48) / containerWidth);
+      applyZoom();
+    }
+
+    function applyZoom() {
+      const container = document.getElementById('planContainer');
+      container.style.transform = `scale(${currentZoom})`;
+    }
+
+    // Export / Import Backup JSON
+    function exportData() {
+      const jsonStr = JSON.stringify(dormData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `ผังอาคารรวมใจพัฒนา_ราคา_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("📥 ส่งออกไฟล์สำรองสำเร็จ");
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && imported[1] && imported[2]) {
+            dormData = imported;
+            saveData();
+            renderAll();
+            showToast("📤 นำเข้าข้อมูลสำเร็จเรียบร้อย");
+          } else {
+            alert("รูปแบบไฟล์ไม่ถูกต้อง");
+          }
+        } catch (err) {
+          alert("ไม่สามารถอ่านไฟล์ JSON ได้: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // Reset Defaults
+    function resetToDefaults() {
+      if (!confirm('คุณต้องการรีเซ็ตผังและขนาดห้องกลับเป็นค่าเริ่มต้นตามแนวเสาหรือไม่?\n(ข้อมูลราคาที่เคยแก้ไขจะถูกรีเซ็ตเป็นค่าแรกเริ่ม)')) {
+        return;
+      }
+      dormData = JSON.parse(JSON.stringify(defaultData));
+      saveData();
+      renderAll();
+      showToast("🔄 รีเซ็ตค่าเริ่มต้นตามแนวเสาเรียบร้อยแล้ว");
+    }
+
+    // Toast message helper
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // Init on load
+    window.addEventListener('DOMContentLoaded', () => {
+      switchFloor(2);
+      setupPlanDblClick();
+    });
+  </script>
+</body>
+</html>
