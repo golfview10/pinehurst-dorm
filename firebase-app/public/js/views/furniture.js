@@ -83,7 +83,7 @@
                     <!-- Central Stock -->
                     <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100 shadow-sm">
                         <h3 class="font-bold text-sm text-indigo-800 mb-3 flex items-center">
-                            <i class="fa-solid fa-building-columns mr-2 text-indigo-500"></i>จำนวนเครื่องใช้ไฟฟ้าที่ไม่มีในระบบ
+                            <i class="fa-solid fa-building-columns mr-2 text-indigo-500"></i>สต๊อกส่วนกลาง (ไม่ได้ผูกห้อง / รอกระจาย)
                         </h3>
                         <div class="flex flex-wrap gap-2">
                             ${Object.keys(centralStock).length === 0 ? '<span class="text-xs text-gray-500">ไม่มีสต็อกส่วนกลาง</span>' : ''}
@@ -102,7 +102,7 @@
                     <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 shadow-sm relative">
                         <div class="flex justify-between items-start mb-3">
                             <h3 class="font-bold text-sm text-emerald-800 flex items-center">
-                                <i class="fa-solid fa-truck-fast mr-2 text-emerald-500"></i>ยอดคืนเครื่องใช้ไฟฟ้าที่มีในสต๊อก
+                                <i class="fa-solid fa-boxes-stacked mr-2 text-emerald-500"></i>สต๊อกประจำตึก (ถอดคืนจากห้อง / พร้อมเบิก)
                             </h3>
                             <button onclick="openReturnedInStockReportModal()" class="bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700 transition text-[10px] font-medium shadow-sm flex items-center">
                                 <i class="fa-solid fa-file-excel mr-1"></i> รายงาน
@@ -247,30 +247,33 @@
             let targetLogs = [];
 
             if (mode === 'instock') {
-                // Calculate current stock for each item
+                // Calculate current stock isolated per building for each item
                 const buildingStock = STATE.furnitureStock?.buildings || {};
-                const transferred = {};
-                for (const items of Object.values(buildingStock)) {
-                    for (const [name, qty] of Object.entries(items)) {
-                        transferred[name] = (transferred[name] || 0) + qty;
+                
+                for (const [bldg, items] of Object.entries(buildingStock)) {
+                    for (const [itemName, stockQty] of Object.entries(items)) {
+                        if (stockQty <= 0) continue;
+                        
+                        // Find returns from this specific building
+                        const itemBldgLogs = allLogs.filter(l => {
+                            if (l.furnitureName !== itemName) return false;
+                            const logBldg = l.building || (l.roomNo ? parseRoomInfo(l.roomNo).building : null);
+                            return logBldg === bldg;
+                        });
+                        
+                        let remainingQty = stockQty;
+                        for (const log of itemBldgLogs) {
+                            if (remainingQty <= 0) break;
+                            const logQty = log.quantity || 1;
+                            const takeQty = Math.min(logQty, remainingQty);
+                            targetLogs.push({
+                                ...log,
+                                displayQuantity: takeQty
+                            });
+                            remainingQty -= takeQty;
+                        }
                     }
                 }
-
-                Object.entries(transferred).forEach(([itemName, stockQty]) => {
-                    const itemLogs = allLogs.filter(l => l.furnitureName === itemName);
-                    let remainingQty = stockQty;
-                    
-                    for (const log of itemLogs) {
-                        if (remainingQty <= 0) break;
-                        const logQty = log.quantity || 1;
-                        const takeQty = Math.min(logQty, remainingQty);
-                        targetLogs.push({
-                            ...log,
-                            displayQuantity: takeQty
-                        });
-                        remainingQty -= takeQty;
-                    }
-                });
             } else {
                 targetLogs = allLogs.map(log => ({ ...log, displayQuantity: log.quantity || 1 }));
             }
@@ -316,7 +319,7 @@
                         <td class="p-3 text-emerald-600 font-bold">${escapeHtml(l.furnitureName)}</td>
                         <td class="p-3 text-center text-amber-600 font-bold text-sm bg-amber-50/50">${l.displayQuantity}</td>
                         <td class="p-3 whitespace-nowrap" title="${escapeHtml(l.userName || '-')}">${escapeHtml(l.userName || '-')}</td>
-                        <td class="p-3 min-w-[220px]">
+                        <td class="p-3 min-w-[300px]">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="flex-1">
                                     ${hasRemark 
@@ -352,7 +355,7 @@
                             <th class="p-3">รายการเฟอร์นิเจอร์</th>
                             <th class="p-3 text-center">จำนวน</th>
                             <th class="p-3">ผู้ดำเนินการ</th>
-                            <th class="p-3 min-w-[220px]">หมายเหตุ</th>
+                            <th class="p-3 min-w-[300px]">หมายเหตุ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -468,20 +471,33 @@
             let logs = res.data;
             
             if (currentStockQty !== undefined && currentStockQty > 0) {
+                const buildingStock = STATE.furnitureStock?.buildings || {};
                 const currentLogs = [];
-                let remainingQty = currentStockQty;
                 
-                for (const log of logs) {
-                    if (remainingQty <= 0) break;
+                for (const [bldg, items] of Object.entries(buildingStock)) {
+                    const bldgStockQty = items[itemName] || 0;
+                    if (bldgStockQty <= 0) continue;
                     
-                    const logQty = log.quantity || 1;
-                    const takeQty = Math.min(logQty, remainingQty);
-                    currentLogs.push({
-                        ...log,
-                        displayQuantity: takeQty
+                    const bldgLogs = logs.filter(l => {
+                        const logBldg = l.building || (l.roomNo ? parseRoomInfo(l.roomNo).building : null);
+                        return logBldg === bldg;
                     });
-                    remainingQty -= takeQty;
+                    
+                    let remainingQty = bldgStockQty;
+                    for (const log of bldgLogs) {
+                        if (remainingQty <= 0) break;
+                        const logQty = log.quantity || 1;
+                        const takeQty = Math.min(logQty, remainingQty);
+                        currentLogs.push({
+                            ...log,
+                            displayQuantity: takeQty
+                        });
+                        remainingQty -= takeQty;
+                    }
                 }
+                
+                // Sort chronologically descending
+                currentLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 logs = currentLogs;
             }
 
@@ -871,7 +887,7 @@
             } else {
                 // Grid layout for furniture counts
                 const cols = Math.min(furnitureNames.length, 3);
-                cellsHtml = `<div class="grid grid-cols-${cols} gap-1 mt-2">`;
+                cellsHtml = `<div class="grid grid-cols-${cols} gap-1.5 mt-2">`;
                 furnitureNames.forEach(name => {
                     const count = furnitureCounts[name];
                     const roomsWithItem = roomsWithItemCount[name];
@@ -881,10 +897,10 @@
                     const bgColor = isComplete ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700';
 
                     cellsHtml += `
-                        <div onclick="event.stopPropagation(); renderFurnitureRoomDetail('${bldg}', '${name}')" class="text-center p-1.5 rounded-lg ${bgColor} hover:brightness-95 cursor-pointer transition">
-                            <div class="text-lg font-bold">${count}</div>
-                            <div class="text-[10px] leading-tight truncate" title="${name}">
-                                <i class="fa-solid ${icon} mr-0.5"></i>${name}
+                        <div onclick="event.stopPropagation(); renderFurnitureRoomDetail('${bldg}', '${name}')" class="text-center p-1.5 rounded-lg ${bgColor} hover:brightness-95 cursor-pointer transition flex flex-col justify-between">
+                            <div class="text-base font-bold">${count}</div>
+                            <div class="text-[10px] leading-tight break-words font-medium mt-0.5" title="${name}">
+                                <i class="fa-solid ${icon} mr-0.5 text-[9px]"></i><span>${name}</span>
                             </div>
                         </div>
                     `;
@@ -893,11 +909,17 @@
             }
 
             return `
-                <div onclick="updateActiveNav(1); renderRoomList('${bldg}')" 
-                     class="w-44 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer transition-all duration-200 overflow-hidden">
-                    <div class="bg-gray-800 text-white text-center py-2 font-bold text-lg tracking-wide">${bldg}</div>
+                <div onclick="renderFurnitureRoomDetail('${bldg}')" 
+                     class="w-52 md:w-56 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer transition-all duration-200 overflow-hidden flex flex-col">
+                    <div class="bg-gray-800 text-white text-center py-2 px-3 font-bold text-lg tracking-wide flex items-center justify-between">
+                        <span class="w-6"></span>
+                        <span>${bldg}</span>
+                        <button type="button" onclick="event.stopPropagation(); updateActiveNav(1); renderRoomList('${bldg}')" class="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" title="สลับไปดูผังห้องพักว่าง">
+                            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                        </button>
+                    </div>
                     <div class="text-center text-[11px] text-gray-500 py-1 border-b border-gray-100">ทั้งหมด ${totalRooms} ห้อง</div>
-                    <div class="p-2">
+                    <div class="p-2 flex-1">
                         ${cellsHtml}
                     </div>
                 </div>
