@@ -3,6 +3,17 @@
         // =====================================================
 
         /**
+         * Helper ตรวจสอบห้องรายวัน
+         */
+        function isDailyRoom(r) {
+            if (!r) return false;
+            if (r.roomType && String(r.roomType).includes('รายวัน')) return true;
+            if (r.status && String(r.status).includes('รายวัน')) return true;
+            return false;
+        }
+        window.isDailyRoom = isDailyRoom;
+
+        /**
          * Render Furniture Zone Map — คล้าย Visual Map แต่แสดงจำนวนเฟอร์ต่อตึก
          */
         function renderFurnitureMap() {
@@ -11,6 +22,7 @@
             // Identify Buildings
             const buildings = new Set();
             STATE.data.forEach(r => {
+                if (isDailyRoom(r)) return;
                 const info = parseRoomInfo(r.roomNo);
                 buildings.add(info.building);
             });
@@ -507,8 +519,7 @@
         function generateFurnitureBuildingCard(bldg) {
             const rooms = STATE.data.filter(r => {
                 if (parseRoomInfo(r.roomNo).building !== bldg) return false;
-                if (r.roomType && r.roomType.includes('รายวัน')) return false;
-                if (r.status && r.status.includes('รายวัน')) return false;
+                if (isDailyRoom(r)) return false;
                 return true;
             });
             const totalRooms = rooms.length;
@@ -626,6 +637,7 @@
             const itemMode = STATE.furnitureDetailFilter.itemMode || 'has';
 
             let rooms = STATE.data.filter(r => {
+                if (isDailyRoom(r)) return false;
                 const info = parseRoomInfo(r.roomNo);
                 const status = r.status || 'ห้องว่าง';
                 if (selectedBldgs.length > 0 && !selectedBldgs.includes(info.building)) return false;
@@ -668,8 +680,9 @@
                 itemsToShowTotals = itemsToShowTotals.filter(item => selectedItems.includes(item));
             }
 
-            // Build filter UI checkboxes
-            const allBuildings = Array.from(new Set(STATE.data.map(r => parseRoomInfo(r.roomNo).building))).sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
+            // Build filter UI checkboxes (excluding daily rooms)
+            const nonDailyRooms = STATE.data.filter(r => !isDailyRoom(r));
+            const allBuildings = Array.from(new Set(nonDailyRooms.map(r => parseRoomInfo(r.roomNo).building))).sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
             const bldgCheckboxesHtml = allBuildings.map(b => `
                 <label class="inline-flex items-center space-x-1.5 p-1.5 px-3 rounded-full border ${selectedBldgs.includes(b) ? 'bg-blue-50 border-blue-200 text-blue-700 font-bold' : 'bg-white border-gray-200 text-gray-600'} hover:bg-blue-50 cursor-pointer transition text-xs shrink-0 shadow-sm">
                     <input type="checkbox" value="${b}" class="hidden fur-bldg-filter" ${selectedBldgs.includes(b) ? 'checked' : ''} onchange="applyFurnitureDetailFilter()">
@@ -691,7 +704,7 @@
                 `;
             }).join('');
 
-            const allStatuses = Array.from(new Set(STATE.data.map(r => r.status || 'ห้องว่าง'))).filter(Boolean).sort();
+            const allStatuses = Array.from(new Set(nonDailyRooms.map(r => r.status || 'ห้องว่าง'))).filter(Boolean).sort();
             const statusCheckboxesHtml = allStatuses.map(s => {
                 const isSelected = selectedStatuses.includes(s);
                 return `
@@ -933,19 +946,31 @@
 
             const remark = document.getElementById('fur_return_remark')?.value || '';
 
-            const items = Array.from(checkboxes).map(cb => {
+            const items = [];
+            for (const cb of checkboxes) {
                 const name = cb.value;
                 const qtyInput = document.getElementById(`fur_ret_qty_${name.replace(/\s/g, '_')}`);
-                return { name, qty: parseInt(qtyInput?.value || '1') };
-            });
+                const qty = parseInt(qtyInput?.value || '0', 10);
+                const maxQty = parseInt(qtyInput?.getAttribute('max') || '0', 10);
+                if (!Number.isInteger(qty) || qty <= 0) {
+                    showToast('จำนวนไม่ถูกต้อง', `กรุณาระบุจำนวนที่ถูกต้องสำหรับ ${name}`, 'error');
+                    return;
+                }
+                if (maxQty > 0 && qty > maxQty) {
+                    showToast('จำนวนเกินห้องมี', `จำนวนสำหรับ ${name} เกินกว่าที่มีในห้อง (${maxQty})`, 'error');
+                    return;
+                }
+                items.push({ name, qty });
+            }
 
             showLoading(true);
             try {
+                const userName = (STATE.user && (STATE.user.name || STATE.user.username)) || 'Unknown';
                 const res = await callApi('returnFurniture', {
                     project: STATE.currentProject,
                     roomNo,
                     items,
-                    userName: STATE.user.name,
+                    userName,
                     remark
                 }, { silent: true });
 
@@ -1039,19 +1064,31 @@
 
             const remark = document.getElementById('fur_add_remark')?.value || '';
 
-            const items = Array.from(checkboxes).map(cb => {
+            const items = [];
+            for (const cb of checkboxes) {
                 const name = cb.value;
                 const qtyInput = document.getElementById(`fur_add_qty_${name.replace(/\s/g, '_')}`);
-                return { name, qty: parseInt(qtyInput?.value || '1') };
-            });
+                const qty = parseInt(qtyInput?.value || '0', 10);
+                const maxQty = parseInt(qtyInput?.getAttribute('max') || '0', 10);
+                if (!Number.isInteger(qty) || qty <= 0) {
+                    showToast('จำนวนไม่ถูกต้อง', `กรุณาระบุจำนวนที่ถูกต้องสำหรับ ${name}`, 'error');
+                    return;
+                }
+                if (maxQty > 0 && qty > maxQty) {
+                    showToast('จำนวนเกินสต๊อก', `จำนวนสำหรับ ${name} เกินสต๊อกตึกที่มี (${maxQty})`, 'error');
+                    return;
+                }
+                items.push({ name, qty });
+            }
 
             showLoading(true);
             try {
+                const userName = (STATE.user && (STATE.user.name || STATE.user.username)) || 'Unknown';
                 const res = await callApi('addFurnitureToRoom', {
                     project: STATE.currentProject,
                     roomNo,
                     items,
-                    userName: STATE.user.name,
+                    userName,
                     remark
                 }, { silent: true });
 
@@ -1142,19 +1179,31 @@
 
             const remark = document.getElementById('fur_xfer_remark')?.value || '';
 
-            const items = Array.from(checkboxes).map(cb => {
+            const items = [];
+            for (const cb of checkboxes) {
                 const name = cb.value;
                 const qtyInput = document.getElementById(`fur_xfer_qty_${name.replace(/\s/g, '_')}`);
-                return { name, qty: parseInt(qtyInput?.value || '1') };
-            });
+                const qty = parseInt(qtyInput?.value || '0', 10);
+                const maxQty = parseInt(qtyInput?.getAttribute('max') || '0', 10);
+                if (!Number.isInteger(qty) || qty <= 0) {
+                    showToast('จำนวนไม่ถูกต้อง', `กรุณาระบุจำนวนที่ถูกต้องสำหรับ ${name}`, 'error');
+                    return;
+                }
+                if (maxQty > 0 && qty > maxQty) {
+                    showToast('จำนวนเกินสต๊อก', `จำนวนสำหรับ ${name} เกินสต๊อกตึกที่มี (${maxQty})`, 'error');
+                    return;
+                }
+                items.push({ name, qty });
+            }
 
             showLoading(true);
             try {
+                const userName = (STATE.user && (STATE.user.name || STATE.user.username)) || 'Unknown';
                 const res = await callApi('transferToCentral', {
                     project: STATE.currentProject,
                     building,
                     items,
-                    userName: STATE.user.name,
+                    userName,
                     remark
                 }, { silent: true });
 
@@ -1190,7 +1239,8 @@
             const itemMap = {};
             STATE.furnitureItems.forEach(fi => { itemMap[fi.name] = fi; });
 
-            const allBuildings = Array.from(new Set(STATE.data.map(r => parseRoomInfo(r.roomNo).building))).sort();
+            const nonDailyRooms = STATE.data.filter(r => !isDailyRoom(r));
+            const allBuildings = Array.from(new Set(nonDailyRooms.map(r => parseRoomInfo(r.roomNo).building))).sort();
             const buildingOptions = allBuildings.map(b => `<option value="${b}">ตึก ${b}</option>`).join('');
 
             let optionsHtml = stockNames.map(name => {
@@ -1261,19 +1311,31 @@
 
             const remark = document.getElementById('fur_xfer_from_remark')?.value || '';
 
-            const items = Array.from(checkboxes).map(cb => {
+            const items = [];
+            for (const cb of checkboxes) {
                 const name = cb.value;
                 const qtyInput = document.getElementById(`fur_xfer_from_qty_${name.replace(/\s/g, '_')}`);
-                return { name, qty: parseInt(qtyInput?.value || '1') };
-            });
+                const qty = parseInt(qtyInput?.value || '0', 10);
+                const maxQty = parseInt(qtyInput?.getAttribute('max') || '0', 10);
+                if (!Number.isInteger(qty) || qty <= 0) {
+                    showToast('จำนวนไม่ถูกต้อง', `กรุณาระบุจำนวนที่ถูกต้องสำหรับ ${name}`, 'error');
+                    return;
+                }
+                if (maxQty > 0 && qty > maxQty) {
+                    showToast('จำนวนเกินสต๊อก', `จำนวนสำหรับ ${name} เกินสต๊อกส่วนกลางที่มี (${maxQty})`, 'error');
+                    return;
+                }
+                items.push({ name, qty });
+            }
 
             showLoading(true);
             try {
+                const userName = (STATE.user && (STATE.user.name || STATE.user.username)) || 'Unknown';
                 const res = await callApi('transferFromCentral', {
                     project: STATE.currentProject,
                     building,
                     items,
-                    userName: STATE.user.name,
+                    userName,
                     remark
                 }, { silent: true });
 
@@ -1450,7 +1512,8 @@
                 `;
             }).join('');
 
-            const allBuildings = Array.from(new Set(STATE.data.map(r => parseRoomInfo(r.roomNo).building))).sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
+            const nonDailyRooms = STATE.data.filter(r => !isDailyRoom(r));
+            const allBuildings = Array.from(new Set(nonDailyRooms.map(r => parseRoomInfo(r.roomNo).building))).sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
             let bldgOptionsHtml = allBuildings.map(bldg => {
                 const isChecked = activeBldgFilter.length > 0 ? activeBldgFilter.includes(bldg) : true;
                 return `
@@ -1546,6 +1609,7 @@
             // Build report data
             const reportData = [];
             STATE.data.forEach(r => {
+                if (isDailyRoom(r)) return;
                 const info = parseRoomInfo(r.roomNo);
                 
                 // Filter by building
@@ -1724,13 +1788,14 @@
 
             let optionsHtml = allItems.map(name => {
                 const icon = itemMap[name] ? itemMap[name].icon : 'fa-couch';
+                const safeName = name.replace(/\s/g, '_');
                 return `
                     <label class="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-emerald-50 cursor-pointer transition">
-                        <input type="checkbox" name="fur_add_central" value="${name}" class="rounded text-emerald-500" onchange="document.getElementById('add_central_qty_${name}').disabled = !this.checked; if(this.checked) document.getElementById('add_central_qty_${name}').focus();">
+                        <input type="checkbox" name="fur_add_central" value="${name}" class="rounded text-emerald-500" onchange="document.getElementById('add_central_qty_${safeName}').disabled = !this.checked; if(this.checked) document.getElementById('add_central_qty_${safeName}').focus();">
                         <i class="fa-solid ${icon} text-gray-500"></i>
                         <span class="flex-1 font-medium text-gray-700">${name}</span>
                         <div class="flex items-center space-x-1">
-                            <input type="number" id="add_central_qty_${name}" min="1" max="999" value="1" disabled
+                            <input type="number" id="add_central_qty_${safeName}" min="1" max="999" value="1" disabled
                                 class="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-gray-100 disabled:text-gray-400">
                             <span class="text-xs text-gray-500">ชิ้น</span>
                         </div>
@@ -1789,11 +1854,18 @@
                 return;
             }
 
-            const items = Array.from(checkboxes).map(cb => {
+            const items = [];
+            for (const cb of checkboxes) {
                 const name = cb.value;
-                const qty = parseInt(document.getElementById(`add_central_qty_${name}`).value) || 0;
-                return { name, qty };
-            }).filter(item => item.qty > 0);
+                const safeName = name.replace(/\s/g, '_');
+                const qtyInput = document.getElementById(`add_central_qty_${safeName}`);
+                const qty = parseInt(qtyInput?.value || '0', 10);
+                if (!Number.isInteger(qty) || qty <= 0) {
+                    showToast('ระบุจำนวน', `กรุณาระบุจำนวนที่ถูกต้องสำหรับ ${name} (มากกว่า 0)`, 'error');
+                    return;
+                }
+                items.push({ name, qty });
+            }
 
             if (items.length === 0) {
                 showToast('ระบุจำนวน', 'กรุณาระบุจำนวนที่ถูกต้อง (มากกว่า 0)', 'error');
@@ -1806,10 +1878,11 @@
 
                 showLoading(true);
                 try {
+                    const userName = (STATE.user && (STATE.user.name || STATE.user.username)) || 'Unknown';
                     const res = await callApi('addCentralStock', {
                         project: STATE.currentProject,
                         items,
-                        userName: STATE.user ? STATE.user.username : 'Unknown',
+                        userName,
                         remark: remark
                     }, { silent: true });
                     
@@ -1929,7 +2002,16 @@
             for (const cb of checkboxes) {
                 const name = cb.value;
                 const qtyInput = document.getElementById(`fur_dispose_qty_${name.replace(/\s/g, '_')}`);
-                const qty = parseInt(qtyInput?.value || '1');
+                const qty = parseInt(qtyInput?.value || '0', 10);
+                const maxQty = parseInt(qtyInput?.getAttribute('max') || '0', 10);
+                if (!Number.isInteger(qty) || qty <= 0) {
+                    showToast('จำนวนไม่ถูกต้อง', `กรุณาระบุจำนวนที่ถูกต้องสำหรับ ${name}`, 'error');
+                    return;
+                }
+                if (maxQty > 0 && qty > maxQty) {
+                    showToast('จำนวนเกินสต๊อก', `จำนวนสำหรับ ${name} เกินสต๊อกที่มี (${maxQty})`, 'error');
+                    return;
+                }
                 items.push({ name, qty });
             }
             const summary = items.map(i => `${i.name} x${i.qty}`).join(', ');
@@ -1940,10 +2022,11 @@
                 async () => {
                     showLoading(true);
                     try {
+                        const userName = (STATE.user && (STATE.user.name || STATE.user.username)) || 'Unknown';
                         const res = await callApi('disposeCentralStock', {
                             project: STATE.currentProject,
                             items,
-                            userName: STATE.user.name,
+                            userName,
                             remark
                         }, { silent: true });
 

@@ -98,8 +98,25 @@ window.SafeStorage = {
             const { project, data } = e.detail;
             if (STATE.currentProject === project) {
                 STATE.roomFurniture = data;
-                if (STATE.currentView === 'furniture_map') {
-                    if (typeof renderFurnitureMap === 'function') renderFurnitureMap();
+                if (STATE.currentView === 'furniture_map' && typeof renderFurnitureMap === 'function') {
+                    renderFurnitureMap();
+                } else if (STATE.currentView === 'furniture_detail' && typeof renderFurnitureRoomDetail === 'function') {
+                    renderFurnitureRoomDetail();
+                }
+            }
+        });
+
+        // --- Real-time Furniture Stock Listener ---
+        window.addEventListener('furnitureStockUpdated', (e) => {
+            const { project, data } = e.detail;
+            if (STATE.currentProject === project) {
+                STATE.furnitureStock = data;
+                if (STATE.currentView === 'furniture_map' && typeof renderFurnitureMap === 'function') {
+                    renderFurnitureMap();
+                } else if (STATE.currentView === 'furniture_detail' && typeof renderFurnitureRoomDetail === 'function') {
+                    renderFurnitureRoomDetail();
+                } else if (STATE.currentView === 'furniture_stock' && typeof renderFurnitureStockPanel === 'function') {
+                    renderFurnitureStockPanel();
                 }
             }
         });

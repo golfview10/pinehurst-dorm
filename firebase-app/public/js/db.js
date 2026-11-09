@@ -1651,6 +1651,10 @@ async function firebaseApiHandler(request) {
 const furnitureListeners = {};
 const roomFurnitureCache = {};
 
+// --- Real-time listener for furniture stock ---
+const stockListeners = {};
+const furnitureStockCache = {};
+
 /**
  * ดึงรายการเฟอร์นิเจอร์ (Master List) ตาม project
  */
@@ -1786,14 +1790,18 @@ async function handleReturnFurnitureFirebase(project, roomNo, items, userName, r
 
             for (const item of items) {
                 const { name: furnitureName, qty: quantity } = item;
+                const parsedQty = parseInt(quantity, 10);
+                if (!Number.isInteger(parsedQty) || parsedQty <= 0) {
+                    throw new Error(`จำนวนของ "${furnitureName}" ต้องเป็นตัวเลขจำนวนเต็มบวก (มากกว่า 0)`);
+                }
                 const currentQty = roomItems[furnitureName] || 0;
 
-                if (currentQty < quantity) {
-                    throw new Error(`ห้อง ${roomNo} มี ${furnitureName} แค่ ${currentQty} ชิ้น ไม่สามารถคืน ${quantity} ชิ้นได้`);
+                if (currentQty < parsedQty) {
+                    throw new Error(`ห้อง ${roomNo} มี ${furnitureName} แค่ ${currentQty} ชิ้น ไม่สามารถคืน ${parsedQty} ชิ้นได้`);
                 }
 
                 // Deduct from room
-                const newQty = currentQty - quantity;
+                const newQty = currentQty - parsedQty;
                 if (newQty <= 0) {
                     roomItems[furnitureName] = firebase.firestore.FieldValue.delete();
                 } else {
@@ -1801,7 +1809,7 @@ async function handleReturnFurnitureFirebase(project, roomNo, items, userName, r
                 }
 
                 // Add to building stock
-                stockItems[furnitureName] = (stockItems[furnitureName] || 0) + quantity;
+                stockItems[furnitureName] = (stockItems[furnitureName] || 0) + parsedQty;
             }
 
             rooms[roomNo] = roomItems;
@@ -1858,18 +1866,22 @@ async function handleAddFurnitureToRoomFirebase(project, roomNo, items, userName
 
             for (const item of items) {
                 const { name: furnitureName, qty: quantity } = item;
+                const parsedQty = parseInt(quantity, 10);
+                if (!Number.isInteger(parsedQty) || parsedQty <= 0) {
+                    throw new Error(`จำนวนของ "${furnitureName}" ต้องเป็นตัวเลขจำนวนเต็มบวก (มากกว่า 0)`);
+                }
                 const stockQty = stockItems[furnitureName] || 0;
 
-                if (stockQty < quantity) {
-                    throw new Error(`สต๊อกตึก ${building} มี ${furnitureName} แค่ ${stockQty} ชิ้น ไม่พอเพิ่ม ${quantity} ชิ้น`);
+                if (stockQty < parsedQty) {
+                    throw new Error(`สต๊อกตึก ${building} มี ${furnitureName} แค่ ${stockQty} ชิ้น ไม่พอเพิ่ม ${parsedQty} ชิ้น`);
                 }
 
                 // Deduct from stock
-                stockItems[furnitureName] = stockQty - quantity;
+                stockItems[furnitureName] = stockQty - parsedQty;
                 if (stockItems[furnitureName] <= 0) stockItems[furnitureName] = firebase.firestore.FieldValue.delete();
 
                 // Add to room
-                roomItems[furnitureName] = (roomItems[furnitureName] || 0) + quantity;
+                roomItems[furnitureName] = (roomItems[furnitureName] || 0) + parsedQty;
             }
 
             rooms[roomNo] = roomItems;
@@ -1907,7 +1919,7 @@ async function handleTransferToCentralFirebase(project, building, items, userNam
             throw new Error("ไม่มีรายการที่ต้องเบิก");
         }
 
-        const buildingStockId = `${project}_building_${building}`;
+        const buildingStockId = `${project}_building_${String(building || '').replace(/[/\\]/g, '-')}`;
         const centralStockId = `${project}_central`;
 
         const bRef = db.collection('furnitureStock').doc(buildingStockId);
@@ -1922,18 +1934,22 @@ async function handleTransferToCentralFirebase(project, building, items, userNam
 
             for (const item of items) {
                 const { name: furnitureName, qty: quantity } = item;
+                const parsedQty = parseInt(quantity, 10);
+                if (!Number.isInteger(parsedQty) || parsedQty <= 0) {
+                    throw new Error(`จำนวนของ "${furnitureName}" ต้องเป็นตัวเลขจำนวนเต็มบวก (มากกว่า 0)`);
+                }
                 const bQty = bItems[furnitureName] || 0;
 
-                if (bQty < quantity) {
-                    throw new Error(`สต๊อกตึก ${building} มี ${furnitureName} แค่ ${bQty} ชิ้น ไม่พอเบิก ${quantity} ชิ้น`);
+                if (bQty < parsedQty) {
+                    throw new Error(`สต๊อกตึก ${building} มี ${furnitureName} แค่ ${bQty} ชิ้น ไม่พอเบิก ${parsedQty} ชิ้น`);
                 }
 
                 // Deduct from building stock
-                bItems[furnitureName] = bQty - quantity;
+                bItems[furnitureName] = bQty - parsedQty;
                 if (bItems[furnitureName] <= 0) bItems[furnitureName] = firebase.firestore.FieldValue.delete();
 
                 // Add to central stock
-                cItems[furnitureName] = (cItems[furnitureName] || 0) + quantity;
+                cItems[furnitureName] = (cItems[furnitureName] || 0) + parsedQty;
             }
 
             transaction.set(bRef, {
@@ -1953,6 +1969,7 @@ async function handleTransferToCentralFirebase(project, building, items, userNam
         for (const item of items) {
             await logFurnitureAction(userName, project, 'transfer_to_central', item.name, null, building, item.qty, remark);
         }
+        await logAction(userName, project, building, 'โอนย้ายสต๊อกเฟอร์นิเจอร์', `เบิก ${namesSummary} จากตึก ${building} ไปส่วนกลาง${remark ? ` (เหตุผล: ${remark})` : ''}`, 'สำเร็จ');
 
         return { success: true, message: `เบิก ${namesSummary} จากตึก ${building} ไปส่วนกลาง สำเร็จ` };
     } catch (error) {
@@ -1969,7 +1986,7 @@ async function handleTransferFromCentralFirebase(project, building, items, userN
             throw new Error("ไม่มีรายการที่ต้องเบิก");
         }
 
-        const buildingStockId = `${project}_building_${building}`;
+        const buildingStockId = `${project}_building_${String(building || '').replace(/[/\\]/g, '-')}`;
         const centralStockId = `${project}_central`;
 
         const bRef = db.collection('furnitureStock').doc(buildingStockId);
@@ -1984,18 +2001,22 @@ async function handleTransferFromCentralFirebase(project, building, items, userN
 
             for (const item of items) {
                 const { name: furnitureName, qty: quantity } = item;
+                const parsedQty = parseInt(quantity, 10);
+                if (!Number.isInteger(parsedQty) || parsedQty <= 0) {
+                    throw new Error(`จำนวนของ "${furnitureName}" ต้องเป็นตัวเลขจำนวนเต็มบวก (มากกว่า 0)`);
+                }
                 const cQty = cItems[furnitureName] || 0;
 
-                if (cQty < quantity) {
-                    throw new Error(`สต๊อกส่วนกลางมี ${furnitureName} แค่ ${cQty} ชิ้น ไม่พอเบิก ${quantity} ชิ้น`);
+                if (cQty < parsedQty) {
+                    throw new Error(`สต๊อกส่วนกลางมี ${furnitureName} แค่ ${cQty} ชิ้น ไม่พอเบิก ${parsedQty} ชิ้น`);
                 }
 
                 // Deduct from central
-                cItems[furnitureName] = cQty - quantity;
+                cItems[furnitureName] = cQty - parsedQty;
                 if (cItems[furnitureName] <= 0) cItems[furnitureName] = firebase.firestore.FieldValue.delete();
 
                 // Add to building stock
-                bItems[furnitureName] = (bItems[furnitureName] || 0) + quantity;
+                bItems[furnitureName] = (bItems[furnitureName] || 0) + parsedQty;
             }
 
             transaction.set(cRef, {
@@ -2015,6 +2036,7 @@ async function handleTransferFromCentralFirebase(project, building, items, userN
         for (const item of items) {
             await logFurnitureAction(userName, project, 'transfer_from_central', item.name, null, building, item.qty, remark);
         }
+        await logAction(userName, project, building, 'โอนย้ายสต๊อกเฟอร์นิเจอร์', `เบิก ${namesSummary} จากส่วนกลางไปตึก ${building}${remark ? ` (เหตุผล: ${remark})` : ''}`, 'สำเร็จ');
 
         return { success: true, message: `เบิก ${namesSummary} จากส่วนกลางไปตึก ${building} สำเร็จ` };
     } catch (error) {
@@ -2023,27 +2045,48 @@ async function handleTransferFromCentralFirebase(project, building, items, userN
 }
 
 /**
- * ดึงสต๊อกเฟอร์ทั้งหมด (ตึก + ส่วนกลาง) ของโครงการ
+ * ดึงสต๊อกเฟอร์ทั้งหมด (ตึก + ส่วนกลาง) ของโครงการ + Real-time listener
  */
 async function handleGetFurnitureStockFirebase(project) {
     try {
-        const snapshot = await db.collection('furnitureStock')
-            .where('project', '==', project)
-            .get();
+        if (stockListeners[project]) {
+            stockListeners[project]();
+            delete stockListeners[project];
+        }
 
-        const buildings = {};
-        let central = {};
+        await new Promise((resolve, reject) => {
+            const unsubscribe = db.collection('furnitureStock')
+                .where('project', '==', project)
+                .onSnapshot(snapshot => {
+                    const buildings = {};
+                    let central = {};
 
-        snapshot.docs.forEach(doc => {
-            const d = doc.data();
-            if (d.type === 'building' && d.building) {
-                buildings[d.building] = d.items || {};
-            } else if (d.type === 'central') {
-                central = d.items || {};
-            }
+                    snapshot.docs.forEach(doc => {
+                        const d = doc.data();
+                        if (d.type === 'building' && d.building) {
+                            buildings[d.building] = d.items || {};
+                        } else if (d.type === 'central') {
+                            central = d.items || {};
+                        }
+                    });
+
+                    const stockData = { buildings, central };
+                    furnitureStockCache[project] = stockData;
+
+                    window.dispatchEvent(new CustomEvent('furnitureStockUpdated', {
+                        detail: { project, data: stockData }
+                    }));
+
+                    resolve();
+                }, error => {
+                    console.error('[Stock Realtime Error]', error);
+                    reject(error);
+                });
+
+            stockListeners[project] = unsubscribe;
         });
 
-        return { success: true, data: { buildings, central } };
+        return { success: true, data: furnitureStockCache[project] || { buildings: {}, central: {} } };
     } catch (error) {
         return { success: false, message: error.message };
     }
@@ -2132,7 +2175,11 @@ async function handleAddCentralStockFirebase(project, items, userName, remark) {
 
             for (const item of items) {
                 const { name: furnitureName, qty: quantity } = item;
-                cItems[furnitureName] = (cItems[furnitureName] || 0) + quantity;
+                const parsedQty = parseInt(quantity, 10);
+                if (!Number.isInteger(parsedQty) || parsedQty <= 0) {
+                    throw new Error(`จำนวนของ "${furnitureName}" ต้องเป็นตัวเลขจำนวนเต็มบวก (มากกว่า 0)`);
+                }
+                cItems[furnitureName] = (cItems[furnitureName] || 0) + parsedQty;
             }
 
             transaction.set(cRef, {
@@ -2177,13 +2224,17 @@ async function handleDisposeCentralStockFirebase(project, items, userName, remar
 
             for (const item of items) {
                 const { name: furnitureName, qty: quantity } = item;
+                const parsedQty = parseInt(quantity, 10);
+                if (!Number.isInteger(parsedQty) || parsedQty <= 0) {
+                    throw new Error(`จำนวนของ "${furnitureName}" ต้องเป็นตัวเลขจำนวนเต็มบวก (มากกว่า 0)`);
+                }
                 const cQty = cItems[furnitureName] || 0;
 
-                if (cQty < quantity) {
-                    throw new Error(`สต๊อกส่วนกลางมี ${furnitureName} แค่ ${cQty} ชิ้น ไม่สามารถตัด ${quantity} ชิ้นได้`);
+                if (cQty < parsedQty) {
+                    throw new Error(`สต๊อกส่วนกลางมี ${furnitureName} แค่ ${cQty} ชิ้น ไม่สามารถตัด ${parsedQty} ชิ้นได้`);
                 }
 
-                const newQty = cQty - quantity;
+                const newQty = cQty - parsedQty;
                 if (newQty <= 0) {
                     cItems[furnitureName] = firebase.firestore.FieldValue.delete();
                 } else {
@@ -2202,6 +2253,7 @@ async function handleDisposeCentralStockFirebase(project, items, userName, remar
         for (const item of items) {
             await logFurnitureAction(userName, project, 'dispose_central', item.name, null, null, item.qty, remark);
         }
+        await logAction(userName, project, null, 'ตัดสต๊อกเฟอร์นิเจอร์', `ตัดสต๊อก ${namesSummary} ออกจากส่วนกลาง${remark ? ` (เหตุผล: ${remark})` : ''}`, 'สำเร็จ');
 
         return { success: true, message: `ตัดสต๊อก ${namesSummary} ออกจากส่วนกลางสำเร็จ` };
     } catch (error) {
