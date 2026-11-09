@@ -307,14 +307,38 @@
             const tbody = filteredLogs.map(l => {
                 const date = new Date(l.timestamp);
                 const dateStr = date.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                const remarkHistoryCount = (l.remarkHistory && Array.isArray(l.remarkHistory)) ? l.remarkHistory.length : 0;
+                const hasRemark = Boolean(l.remark && l.remark.trim());
                 return `
                     <tr class="border-b border-gray-100 hover:bg-gray-50 text-xs">
                         <td class="p-3 text-center whitespace-nowrap text-gray-500">${dateStr}</td>
-                        <td class="p-3 font-bold text-gray-800 text-center">${l.roomNo || l.building || '-'}</td>
-                        <td class="p-3 text-emerald-600 font-bold">${l.furnitureName}</td>
+                        <td class="p-3 font-bold text-gray-800 text-center font-mono">${escapeHtml(l.roomNo || l.building || '-')}</td>
+                        <td class="p-3 text-emerald-600 font-bold">${escapeHtml(l.furnitureName)}</td>
                         <td class="p-3 text-center text-amber-600 font-bold text-sm bg-amber-50/50">${l.displayQuantity}</td>
-                        <td class="p-3 truncate max-w-[120px]" title="${l.userName || '-'}">${l.userName || '-'}</td>
-                        <td class="p-3 text-gray-500 truncate max-w-[150px]" title="${l.remark || '-'}">${l.remark || '-'}</td>
+                        <td class="p-3 whitespace-nowrap" title="${escapeHtml(l.userName || '-')}">${escapeHtml(l.userName || '-')}</td>
+                        <td class="p-3 min-w-[220px]">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex-1">
+                                    ${hasRemark 
+                                        ? `<div class="text-xs text-gray-800 break-words leading-relaxed">${escapeHtml(l.remark)}</div>`
+                                        : `<div class="text-xs text-gray-400 italic">ไม่มีหมายเหตุ</div>`
+                                    }
+                                    ${remarkHistoryCount > 0 ? `
+                                        <div class="mt-1 flex items-center gap-1.5">
+                                            <button type="button" onclick="openRemarkHistoryDetailsModal('${l.id}')" class="inline-flex items-center text-[10px] text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded transition font-medium cursor-pointer" title="คลิกดูประวัติการแก้ไข">
+                                                <i class="fa-solid fa-clock-rotate-left mr-1 text-[9px]"></i>แก้แล้ว (${remarkHistoryCount})
+                                            </button>
+                                            ${l.lastEditedBy ? `<span class="text-[10px] text-gray-400">โดย ${escapeHtml(l.lastEditedBy)}</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <button type="button" onclick="openEditFurnitureRemarkModal('${l.id}', '${escapeHtml(l.furnitureName)}', '${escapeHtml(l.roomNo || l.building || '')}', '${escapeHtml(l.userName || '')}', '${escapeHtml(l.remark || '')}', 'report')" 
+                                        class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer" 
+                                        title="แก้ไขหมายเหตุ">
+                                    <i class="fa-solid fa-pen-to-square mr-1"></i>แก้ไข
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -328,7 +352,7 @@
                             <th class="p-3">รายการเฟอร์นิเจอร์</th>
                             <th class="p-3 text-center">จำนวน</th>
                             <th class="p-3">ผู้ดำเนินการ</th>
-                            <th class="p-3">หมายเหตุ</th>
+                            <th class="p-3 min-w-[220px]">หมายเหตุ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -428,7 +452,7 @@
         }
 
         /**
-         * แสดงประวัติของเฟอร์นิเจอร์ที่อยู่ในสต๊อก
+         * แสดงประวัติของเฟอร์นิเจอร์ที่อยู่ในสต๊อก (พร้อมรายละเอียดเชิงลึกและปุ่มแก้ไขหมายเหตุ)
          */
         window.showStockItemHistory = async function(itemName, currentStockQty) {
             showLoading(true);
@@ -466,44 +490,116 @@
                 return;
             }
             
+            const totalStockCount = logs.reduce((sum, l) => sum + (l.displayQuantity !== undefined ? l.displayQuantity : (l.quantity || 1)), 0);
+
             const tbody = logs.map(l => {
                 const date = new Date(l.timestamp);
-                const dateStr = date.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                const datePart = date.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' });
+                const timePart = date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
                 const qtyToDisplay = l.displayQuantity !== undefined ? l.displayQuantity : (l.quantity || 1);
+                
+                const roomInfo = l.roomNo ? parseRoomInfo(l.roomNo) : null;
+                const locationHtml = l.roomNo ? `
+                    <div class="font-bold text-gray-900 text-sm font-mono">${escapeHtml(l.roomNo)}</div>
+                    <div class="text-[11px] text-gray-500">ตึก ${escapeHtml(roomInfo.building || '-')} ชั้น ${escapeHtml(roomInfo.floor || '-')}</div>
+                ` : `
+                    <div class="font-bold text-gray-800 text-sm">ตึก ${escapeHtml(l.building || '-')}</div>
+                    <div class="text-[11px] text-gray-500">สต๊อกตึก</div>
+                `;
+
+                const remarkHistoryCount = (l.remarkHistory && Array.isArray(l.remarkHistory)) ? l.remarkHistory.length : 0;
+                const hasRemark = Boolean(l.remark && l.remark.trim());
+
                 return `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50 text-xs">
-                        <td class="p-2 text-center whitespace-nowrap text-gray-500">${dateStr}</td>
-                        <td class="p-2 font-bold text-gray-800 text-center">${l.roomNo || l.building || '-'}</td>
-                        <td class="p-2 text-center text-amber-600 font-bold">${qtyToDisplay}</td>
-                        <td class="p-2 truncate max-w-[100px]" title="${l.userName}">${l.userName}</td>
-                        <td class="p-2 truncate max-w-[120px] text-gray-500" title="${l.remark || '-'}">${l.remark || '-'}</td>
+                    <tr class="border-b border-gray-100 hover:bg-emerald-50/20 transition text-xs">
+                        <td class="p-3 text-center whitespace-nowrap text-gray-600">
+                            <div class="font-medium text-gray-800">${datePart}</div>
+                            <div class="text-[11px] text-gray-400 font-mono">${timePart} น.</div>
+                        </td>
+                        <td class="p-3 text-center whitespace-nowrap">
+                            ${locationHtml}
+                        </td>
+                        <td class="p-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <i class="fa-solid fa-arrow-right-from-bracket mr-1 text-[10px]"></i>ถอดคืนสต๊อก
+                            </span>
+                        </td>
+                        <td class="p-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                                ${qtyToDisplay} ชิ้น
+                            </span>
+                        </td>
+                        <td class="p-3 whitespace-nowrap">
+                            <div class="font-medium text-gray-800 flex items-center">
+                                <i class="fa-regular fa-circle-user text-gray-400 mr-1.5 text-sm"></i>
+                                <span>${escapeHtml(l.userName || '-')}</span>
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex-1 min-w-[200px]">
+                                    ${hasRemark 
+                                        ? `<div class="text-xs text-gray-800 break-words leading-relaxed font-normal">${escapeHtml(l.remark)}</div>`
+                                        : `<div class="text-xs text-gray-400 italic">ไม่มีหมายเหตุ</div>`
+                                    }
+                                    ${remarkHistoryCount > 0 ? `
+                                        <div class="mt-1 flex items-center gap-1.5">
+                                            <button type="button" onclick="openRemarkHistoryDetailsModal('${l.id}')" class="inline-flex items-center text-[10px] text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded transition font-medium cursor-pointer" title="คลิกดูประวัติการแก้ไข">
+                                                <i class="fa-solid fa-clock-rotate-left mr-1 text-[9px]"></i>ประวัติแก้ (${remarkHistoryCount})
+                                            </button>
+                                            ${l.lastEditedBy ? `<span class="text-[10px] text-gray-400">ล่าสุดโดย ${escapeHtml(l.lastEditedBy)}</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <button type="button" onclick="openEditFurnitureRemarkModal('${l.id}', '${escapeHtml(l.furnitureName || itemName)}', '${escapeHtml(l.roomNo || l.building || '')}', '${escapeHtml(l.userName || '')}', '${escapeHtml(l.remark || '')}', 'stock', '${itemName}', ${currentStockQty || 0})" 
+                                        class="shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-800 border border-blue-200 transition shadow-2xs cursor-pointer" 
+                                        title="แก้ไขหมายเหตุ">
+                                    <i class="fa-solid fa-pen-to-square mr-1"></i>แก้ไข
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             }).join('');
             
             const modalHtml = `
                 <div id="stockItemHistoryModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
-                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
                         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50 shrink-0">
-                            <h3 class="font-bold text-lg text-emerald-800"><i class="fa-solid fa-clock-rotate-left mr-2 text-emerald-500"></i>ประวัติที่มาของ ${itemName}</h3>
-                            <button onclick="document.getElementById('stockItemHistoryModal').remove()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                            <div>
+                                <h3 class="font-bold text-lg text-emerald-800 flex items-center">
+                                    <i class="fa-solid fa-clock-rotate-left mr-2 text-emerald-600"></i>ประวัติที่มาของ ${escapeHtml(itemName)}
+                                </h3>
+                                <p class="text-xs text-emerald-600/80 mt-0.5">
+                                    แสดง ${logs.length} รายการ | รวมค้างสต๊อก ${totalStockCount} ชิ้น
+                                </p>
+                            </div>
+                            <button onclick="document.getElementById('stockItemHistoryModal').remove()" class="text-gray-400 hover:text-gray-600 transition w-8 h-8 flex justify-center items-center rounded-full hover:bg-white/50"><i class="fa-solid fa-xmark text-xl"></i></button>
                         </div>
                         <div class="p-4 flex-1 overflow-y-auto">
-                            <table class="w-full text-left bg-white border border-gray-200">
-                                <thead class="bg-gray-100 text-gray-600 text-[11px] uppercase sticky top-0 shadow-sm z-10">
-                                    <tr>
-                                        <th class="p-2 text-center whitespace-nowrap">วันที่-เวลา</th>
-                                        <th class="p-2 text-center">ห้อง/ตึก</th>
-                                        <th class="p-2 text-center">จำนวน</th>
-                                        <th class="p-2">ผู้ดำเนินการ</th>
-                                        <th class="p-2">หมายเหตุ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${tbody}
-                                </tbody>
-                            </table>
-                            <div class="text-[10px] text-gray-400 text-left mt-3">* แสดงประวัติที่มาของ <b>${itemName}</b> เฉพาะที่อยู่ในสต๊อกปัจจุบัน (อ้างอิงจากการคืนล่าสุด)</div>
+                            <div class="border border-gray-200 rounded-xl overflow-hidden shadow-2xs">
+                                <table class="w-full text-left bg-white border-collapse">
+                                    <thead class="bg-gray-50 text-gray-600 text-[11px] uppercase border-b border-gray-200 sticky top-0 shadow-2xs z-10">
+                                        <tr>
+                                            <th class="p-3 text-center whitespace-nowrap">วันที่-เวลา</th>
+                                            <th class="p-3 text-center whitespace-nowrap">ห้อง / ตึก</th>
+                                            <th class="p-3 text-center whitespace-nowrap">การดำเนินการ</th>
+                                            <th class="p-3 text-center whitespace-nowrap">จำนวน</th>
+                                            <th class="p-3 whitespace-nowrap">ผู้ดำเนินการ</th>
+                                            <th class="p-3 min-w-[240px]">หมายเหตุ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tbody}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-gray-500 mt-3 px-1">
+                                <div><i class="fa-solid fa-circle-info mr-1 text-emerald-500"></i>อ้างอิงจากการคืนล่าสุดที่ยังคงอยู่ในสต๊อกปัจจุบัน สามารถกดปุ่ม <b>"แก้ไข"</b> เพื่อปรับปรุงข้อความหมายเหตุได้ตลอดเวลา</div>
+                            </div>
+                        </div>
+                        <div class="px-6 py-3 border-t border-gray-100 shrink-0 bg-gray-50 flex justify-end">
+                            <button onclick="document.getElementById('stockItemHistoryModal').remove()" class="px-5 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-100 transition shadow-2xs cursor-pointer">ปิด</button>
                         </div>
                     </div>
                 </div>
@@ -511,6 +607,226 @@
             
             cleanupModals();
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+
+        /**
+         * Modal แก้ไขหมายเหตุของบันทึกเฟอร์นิเจอร์
+         */
+        window.openEditFurnitureRemarkModal = function(logId, itemName, location, originalUser, currentRemark, sourceContext, sourceArg1, sourceArg2) {
+            // ลบ modal แก้ไขเดิมหากเปิดค้างอยู่
+            document.getElementById('editFurnitureRemarkModal')?.remove();
+
+            const safeCurrentRemark = currentRemark || '';
+            const modalHtml = `
+                <div id="editFurnitureRemarkModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+                        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-blue-50 shrink-0">
+                            <div>
+                                <h3 class="font-bold text-lg text-blue-800 flex items-center">
+                                    <i class="fa-solid fa-pen-to-square mr-2 text-blue-600"></i>แก้ไขหมายเหตุ
+                                </h3>
+                                <p class="text-xs text-blue-600/80 mt-0.5">รายการ: <b>${escapeHtml(itemName)}</b> ${location ? `(${escapeHtml(location)})` : ''}</p>
+                            </div>
+                            <button onclick="document.getElementById('editFurnitureRemarkModal').remove()" class="text-gray-400 hover:text-gray-600 transition w-8 h-8 flex justify-center items-center rounded-full hover:bg-white/50"><i class="fa-solid fa-xmark text-xl"></i></button>
+                        </div>
+                        
+                        <div class="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
+                            <!-- Original Info Box -->
+                            <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 text-xs text-gray-600 space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">ผู้บันทึกเดิม:</span>
+                                    <span class="font-medium text-gray-800">${escapeHtml(originalUser || '-')}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 block mb-0.5">หมายเหตุเดิม:</span>
+                                    <div class="p-2 bg-white rounded border border-gray-200 text-gray-700 italic break-words">
+                                        ${safeCurrentRemark ? escapeHtml(safeCurrentRemark) : '<span class="text-gray-400">ไม่มีหมายเหตุเดิม</span>'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- New Remark Input -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5">
+                                    หมายเหตุใหม่ <span class="text-red-500">*</span>
+                                </label>
+                                <textarea id="edit_fur_remark_input" rows="3" 
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition"
+                                          placeholder="ระบุข้อความหมายเหตุที่ถูกต้อง...">${escapeHtml(safeCurrentRemark)}</textarea>
+                            </div>
+
+                            <!-- Edit Reason Input (Audit Trail) -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5">
+                                    เหตุผลในการแก้ไข <span class="text-xs font-normal text-gray-500">(บันทึกใน Audit Log)</span>
+                                </label>
+                                <input type="text" id="edit_fur_remark_reason" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition"
+                                       placeholder="เช่น แก้ไขข้อมูลให้ถูกต้อง, พิมพ์ตกหล่น, ชี้แจงเพิ่มเติม">
+                            </div>
+
+                            <div class="text-[11px] text-gray-500 bg-amber-50 p-2.5 rounded-lg border border-amber-200 flex items-start">
+                                <i class="fa-solid fa-shield-halved text-amber-600 mt-0.5 mr-2 shrink-0"></i>
+                                <span>ทุกการแก้ไขจะถูกบันทึกประวัติย้อนหลัง (ใครแก้, แก้วันไหน, ข้อความก่อนแก้) ลงใน Audit Log ของระบบอย่างครบถ้วน</span>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 border-t border-gray-100 shrink-0 bg-gray-50 flex space-x-3">
+                            <button type="button" onclick="document.getElementById('editFurnitureRemarkModal').remove()" 
+                                    class="flex-1 bg-white border border-gray-300 text-gray-700 py-2.5 rounded-xl font-medium hover:bg-gray-100 transition shadow-2xs cursor-pointer">
+                                ยกเลิก
+                            </button>
+                            <button type="button" onclick="saveEditedFurnitureRemark('${logId}', '${sourceContext}', '${escapeHtml(sourceArg1 || '')}', ${sourceArg2 || 0})" 
+                                    class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm hover:shadow cursor-pointer">
+                                <i class="fa-solid fa-save mr-1.5"></i>บันทึกการแก้ไข
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('edit_fur_remark_input')?.focus();
+        };
+
+        /**
+         * บันทึกการแก้ไขหมายเหตุ
+         */
+        window.saveEditedFurnitureRemark = async function(logId, sourceContext, sourceArg1, sourceArg2) {
+            const newRemark = document.getElementById('edit_fur_remark_input')?.value?.trim() || '';
+            const editReason = document.getElementById('edit_fur_remark_reason')?.value?.trim() || '';
+            
+            showLoading(true);
+            try {
+                const userName = (STATE.user && (STATE.user.name || STATE.user.username)) || 'Unknown';
+                const res = await callApi('updateFurnitureLogRemark', {
+                    logId,
+                    newRemark,
+                    userName,
+                    editReason
+                }, { silent: true });
+
+                if (!res.success) {
+                    showToast('เกิดข้อผิดพลาด', res.message, 'error');
+                    showLoading(false);
+                    return;
+                }
+
+                showLoading(false);
+                document.getElementById('editFurnitureRemarkModal')?.remove();
+                showToast('สำเร็จ', 'บันทึกการแก้ไขหมายเหตุเรียบร้อย', 'success');
+
+                // รีเฟรช Modal ต้นทางเพื่อให้เห็นข้อมูลที่แก้ไขทันที
+                if (sourceContext === 'stock' && typeof window.showStockItemHistory === 'function') {
+                    await window.showStockItemHistory(sourceArg1, sourceArg2);
+                } else if (sourceContext === 'room' && typeof window.openRoomFurnitureHistoryModal === 'function') {
+                    await window.openRoomFurnitureHistoryModal(sourceArg1);
+                } else if (sourceContext === 'report' && typeof window.fetchReturnedInStockReport === 'function') {
+                    await window.fetchReturnedInStockReport();
+                }
+            } catch (error) {
+                showLoading(false);
+                showToast('เกิดข้อผิดพลาด', error.message, 'error');
+            }
+        };
+
+        /**
+         * แสดงประวัติการแก้ไขหมายเหตุย้อนหลัง (Audit History Timeline)
+         */
+        window.openRemarkHistoryDetailsModal = async function(logId) {
+            showLoading(true);
+            try {
+                const res = await callApi('getFurnitureLogById', { logId });
+                showLoading(false);
+
+                if (!res.success) {
+                    showToast('ผิดพลาด', res.message, 'error');
+                    return;
+                }
+
+                const log = res.data || {};
+                const history = Array.isArray(log.remarkHistory) ? log.remarkHistory : [];
+
+                if (history.length === 0) {
+                    showToast('ไม่มีประวัติ', 'รายการนี้ยังไม่มีประวัติการแก้ไขหมายเหตุ', 'info');
+                    return;
+                }
+
+                const historyReversed = [...history].reverse();
+                const timelineHtml = historyReversed.map((h, i) => {
+                    const dateStr = h.editedAt ? new Date(h.editedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+                    const revisionNum = history.length - i;
+                    return `
+                        <div class="relative pl-6 pb-6 border-l-2 border-indigo-200 last:border-l-0 last:pb-0">
+                            <div class="absolute -left-2 top-0 w-4 h-4 rounded-full bg-indigo-500 border-2 border-white shadow-xs flex items-center justify-center">
+                                <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                            </div>
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 shadow-2xs space-y-2">
+                                <div class="flex items-center justify-between border-b border-gray-200 pb-1.5">
+                                    <span class="text-xs font-bold text-indigo-700">การแก้ไขครั้งที่ ${revisionNum}</span>
+                                    <span class="text-[10px] text-gray-500 font-mono">${dateStr}</span>
+                                </div>
+                                <div class="text-xs text-gray-600 flex items-center">
+                                    <i class="fa-regular fa-user mr-1 text-gray-400"></i>ผู้แก้ไข: <b class="ml-1 text-gray-800">${escapeHtml(h.editedBy || '-')}</b>
+                                </div>
+                                ${h.editReason ? `
+                                    <div class="text-xs text-amber-800 bg-amber-50 p-1.5 rounded border border-amber-200">
+                                        <b>เหตุผล:</b> ${escapeHtml(h.editReason)}
+                                    </div>
+                                ` : ''}
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs pt-1">
+                                    <div class="p-2 bg-red-50 border border-red-100 rounded-lg">
+                                        <div class="text-[10px] font-bold text-red-600 mb-0.5">ข้อความก่อนแก้:</div>
+                                        <div class="text-gray-700 break-words">${h.previousRemark ? escapeHtml(h.previousRemark) : '<span class="text-gray-400 italic">ว่างเปล่า</span>'}</div>
+                                    </div>
+                                    <div class="p-2 bg-emerald-50 border border-emerald-100 rounded-lg">
+                                        <div class="text-[10px] font-bold text-emerald-600 mb-0.5">ข้อความหลังแก้:</div>
+                                        <div class="text-gray-700 break-words">${h.newRemark ? escapeHtml(h.newRemark) : '<span class="text-gray-400 italic">ว่างเปล่า</span>'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const modalHtml = `
+                    <div id="remarkHistoryDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[120] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
+                        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+                            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50 shrink-0">
+                                <div>
+                                    <h3 class="font-bold text-lg text-indigo-900 flex items-center">
+                                        <i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-600"></i>ประวัติการแก้ไขหมายเหตุ
+                                    </h3>
+                                    <p class="text-xs text-indigo-700/80 mt-0.5">${escapeHtml(log.furnitureName || '')} ${log.roomNo ? `(ห้อง ${escapeHtml(log.roomNo)})` : ''}</p>
+                                </div>
+                                <button onclick="document.getElementById('remarkHistoryDetailsModal').remove()" class="text-gray-400 hover:text-gray-600 transition w-8 h-8 flex justify-center items-center rounded-full hover:bg-white/50"><i class="fa-solid fa-xmark text-xl"></i></button>
+                            </div>
+                            <div class="p-6 overflow-y-auto flex-1">
+                                <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                                    <div class="text-xs font-bold text-emerald-800 mb-1 flex items-center">
+                                        <i class="fa-solid fa-check-circle mr-1 text-emerald-600"></i>หมายเหตุปัจจุบัน:
+                                    </div>
+                                    <div class="text-sm text-gray-800 font-medium break-words">
+                                        ${log.remark ? escapeHtml(log.remark) : '<span class="text-gray-400 italic">ไม่มีหมายเหตุ</span>'}
+                                    </div>
+                                </div>
+                                <div class="text-xs font-bold text-gray-700 mb-3 flex items-center">
+                                    <i class="fa-solid fa-timeline mr-1 text-indigo-500"></i>ลำดับการแก้ไข (${history.length} ครั้ง):
+                                </div>
+                                <div class="ml-2">
+                                    ${timelineHtml}
+                                </div>
+                            </div>
+                            <div class="px-6 py-3 border-t border-gray-100 shrink-0 bg-gray-50 flex justify-end">
+                                <button onclick="document.getElementById('remarkHistoryDetailsModal').remove()" class="px-5 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-100 transition shadow-2xs cursor-pointer">ปิด</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            } catch (e) {
+                showLoading(false);
+                showToast('ผิดพลาด', e.message, 'error');
+            }
         };
 
         /**

@@ -121,10 +121,11 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // Furniture Logs (Audit Trail — no update/delete)
+    // Furniture Logs (Audit Trail — allow create and update for remarks)
     match /furnitureLogs/{logId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
     }
 
     // =====================================================

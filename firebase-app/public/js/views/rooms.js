@@ -915,6 +915,7 @@
                         const iconClass = isAdd ? 'fa-plus' : 'fa-arrow-right-from-bracket';
                         const colorClass = isAdd ? 'emerald' : 'red';
                         
+                        const remarkHistoryCount = (item.remarkHistory && Array.isArray(item.remarkHistory)) ? item.remarkHistory.length : 0;
                         contentHtml += `
                             <div class="bg-white border border-${colorClass}-100 rounded-xl p-3 shadow-sm flex items-start space-x-3">
                                 <div class="bg-${colorClass}-100 text-${colorClass}-600 w-10 h-10 rounded-full flex items-center justify-center shrink-0">
@@ -922,13 +923,28 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="flex justify-between items-start mb-1">
-                                        <h4 class="font-bold text-gray-800 text-sm truncate">${item.furnitureName} <span class="text-xs text-gray-500 font-normal ml-1">x${item.quantity}</span></h4>
+                                        <h4 class="font-bold text-gray-800 text-sm truncate">${escapeHtml(item.furnitureName)} <span class="text-xs text-gray-500 font-normal ml-1">x${item.quantity}</span></h4>
                                         <span class="text-[10px] text-gray-500 whitespace-nowrap ml-2">${dateStr}</span>
                                     </div>
-                                    <div class="text-xs text-gray-600 flex items-center mb-1">
-                                        <i class="fa-regular fa-user mr-1 text-gray-400"></i> ${item.userName}
+                                    <div class="text-xs text-gray-600 flex items-center justify-between mb-1.5">
+                                        <span><i class="fa-regular fa-user mr-1 text-gray-400"></i> ${escapeHtml(item.userName || '-')}</span>
+                                        <button type="button" onclick="openEditFurnitureRemarkModal('${item.id}', '${escapeHtml(item.furnitureName)}', 'ห้อง ${escapeHtml(roomNo)}', '${escapeHtml(item.userName || '')}', '${escapeHtml(item.remark || '')}', 'room', '${roomNo}')" class="text-[11px] text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded transition font-medium cursor-pointer">
+                                            <i class="fa-solid fa-pen-to-square mr-1"></i>แก้ไขหมายเหตุ
+                                        </button>
                                     </div>
-                                    ${item.remark ? `<div class="text-[11px] text-gray-500 bg-gray-50 p-1.5 rounded border border-gray-100 italic break-words">${item.remark}</div>` : ''}
+                                    ${item.remark ? `
+                                        <div class="text-xs text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-100 break-words font-medium">
+                                            ${escapeHtml(item.remark)}
+                                        </div>
+                                    ` : '<div class="text-xs text-gray-400 italic">ไม่มีหมายเหตุ</div>'}
+                                    ${remarkHistoryCount > 0 ? `
+                                        <div class="mt-1.5 flex items-center gap-1.5">
+                                            <button type="button" onclick="openRemarkHistoryDetailsModal('${item.id}')" class="inline-flex items-center text-[10px] text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 rounded transition font-medium cursor-pointer">
+                                                <i class="fa-solid fa-clock-rotate-left mr-1"></i>ประวัติการแก้ไข (${remarkHistoryCount} ครั้ง)
+                                            </button>
+                                            ${item.lastEditedBy ? `<span class="text-[10px] text-gray-400">ล่าสุดโดย ${escapeHtml(item.lastEditedBy)}</span>` : ''}
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         `;

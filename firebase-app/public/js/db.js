@@ -1616,6 +1616,12 @@ async function firebaseApiHandler(request) {
             case 'disposeCentralStock':
                 return await handleDisposeCentralStockFirebase(payload.project, payload.items, payload.userName, payload.remark);
 
+            case 'updateFurnitureLogRemark':
+                return await handleUpdateFurnitureLogRemarkFirebase(payload.logId, payload.newRemark, payload.userName, payload.editReason);
+
+            case 'getFurnitureLogById':
+                return await handleGetFurnitureLogByIdFirebase(payload.logId);
+
             // =====================================================
             // INTERNAL MESSAGING API
             // =====================================================
@@ -2150,6 +2156,83 @@ async function handleGetRoomFurnitureHistoryFirebase(project, roomNo) {
         return { success: true, data: history };
     } catch (error) {
         console.error('[handleGetRoomFurnitureHistoryFirebase]', error);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * แก้ไขหมายเหตุใน furnitureLogs พร้อมบันทึกประวัติการแก้ไข (Audit Trail)
+ */
+async function handleUpdateFurnitureLogRemarkFirebase(logId, newRemark, userName, editReason) {
+    try {
+        if (!logId) throw new Error("ไม่พบรหัสรายการบันทึก (logId)");
+        const cleanRemark = String(newRemark || '').trim();
+        const user = String(userName || 'Unknown').trim();
+        const reason = String(editReason || '').trim();
+
+        const logRef = db.collection('furnitureLogs').doc(logId);
+        const doc = await logRef.get();
+        if (!doc.exists) {
+            throw new Error("ไม่พบข้อมูลบันทึกในระบบ");
+        }
+
+        const oldData = doc.data();
+        const oldRemark = oldData.remark || '';
+
+        const historyEntry = {
+            previousRemark: oldRemark,
+            newRemark: cleanRemark,
+            editedBy: user,
+            editReason: reason,
+            editedAt: new Date().toISOString()
+        };
+
+        await logRef.update({
+            remark: cleanRemark,
+            remarkHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry),
+            lastEditedBy: user,
+            lastEditedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // บันทึกลง Audit Log หลักของระบบ
+        const locationStr = oldData.roomNo ? `ห้อง ${oldData.roomNo}` : (oldData.building ? `ตึก ${oldData.building}` : 'ส่วนกลาง');
+        await logAction(
+            user,
+            oldData.project || null,
+            oldData.roomNo || null,
+            'แก้ไขหมายเหตุเฟอร์นิเจอร์',
+            `แก้ไขหมายเหตุ ${oldData.furnitureName || ''} (${locationStr}): เดิม "${oldRemark || '-'}" เป็น "${cleanRemark || '-'}"${reason ? ` (เหตุผล: ${reason})` : ''}`,
+            'สำเร็จ'
+        );
+
+        return {
+            success: true,
+            message: "บันทึกการแก้ไขหมายเหตุเรียบร้อย",
+            data: { id: logId, newRemark: cleanRemark, lastEditedBy: user, historyEntry }
+        };
+    } catch (error) {
+        console.error('[handleUpdateFurnitureLogRemarkFirebase]', error);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * ดึงรายการ log เดี่ยวตาม logId
+ */
+async function handleGetFurnitureLogByIdFirebase(logId) {
+    try {
+        if (!logId) throw new Error("Missing logId");
+        const doc = await db.collection('furnitureLogs').doc(logId).get();
+        if (!doc.exists) throw new Error("ไม่พบข้อมูล");
+        return {
+            success: true,
+            data: {
+                id: doc.id,
+                ...doc.data(),
+                timestamp: doc.data().timestamp ? doc.data().timestamp.toDate().toISOString() : null
+            }
+        };
+    } catch (error) {
         return { success: false, message: error.message };
     }
 }
