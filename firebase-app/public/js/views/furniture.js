@@ -172,7 +172,7 @@
             const today = new Date().toISOString().split('T')[0];
             const modalHtml = `
                 <div id="returnedInStockReportModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
-                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl xl:max-w-7xl max-h-[92vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
                         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50 shrink-0">
                             <h3 class="font-bold text-lg text-emerald-800"><i class="fa-solid fa-file-excel mr-2 text-emerald-500"></i>รายงานยอดคืนเครื่องใช้ไฟฟ้าที่มีในสต๊อก</h3>
                             <button onclick="document.getElementById('returnedInStockReportModal').remove()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -564,7 +564,7 @@
             
             const modalHtml = `
                 <div id="stockItemHistoryModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
-                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl xl:max-w-7xl max-h-[92vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
                         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50 shrink-0">
                             <div>
                                 <h3 class="font-bold text-lg text-emerald-800 flex items-center">
@@ -586,7 +586,7 @@
                                             <th class="p-3 text-center whitespace-nowrap">การดำเนินการ</th>
                                             <th class="p-3 text-center whitespace-nowrap">จำนวน</th>
                                             <th class="p-3 whitespace-nowrap">ผู้ดำเนินการ</th>
-                                            <th class="p-3 min-w-[240px]">หมายเหตุ</th>
+                                            <th class="p-3 min-w-[320px]">หมายเหตุ</th>
                                         </tr>
                                     </thead>
                                     <tbody>
